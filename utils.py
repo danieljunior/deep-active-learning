@@ -1,7 +1,8 @@
 from torchvision import transforms
 from handlers import MNIST_Handler, SVHN_Handler, CIFAR10_Handler, STS_Handler
-from data import get_MNIST, get_FashionMNIST, get_SVHN, get_CIFAR10, get_STJ_STS
-from nets import Net, MNIST_Net, SVHN_Net, CIFAR10_Net, SBERT_Net
+from custom_data import get_MNIST, get_FashionMNIST, get_SVHN, get_CIFAR10, get_STJ_STS, \
+    get_STJ_STS_Classification, get_STS_Classification
+from nets import Net, MNIST_Net, SVHN_Net, CIFAR10_Net, SBERT_Net, SBERT_CrossEncoder, SBERTCrossEncoderFinetune
 from query_strategies import RandomSampling, LeastConfidence, MarginSampling, EntropySampling, \
     LeastConfidenceDropout, MarginSamplingDropout, EntropySamplingDropout, \
     KMeansSampling, KCenterGreedy, BALDDropout, \
@@ -27,9 +28,18 @@ params = {'MNIST':
                'train_args': {'batch_size': 64, 'num_workers': 1},
                'test_args': {'batch_size': 1000, 'num_workers': 1},
                'optimizer_args': {'lr': 0.05, 'momentum': 0.3}},
-          'STS': {'n_epochs': 2,
-                  'train_batch_size': 8
-                  }
+          'STS':
+              {'n_epochs': 2,
+               'train_batch_size': 8
+               },
+          'STS_Cross':
+              {'n_epochs': 2,
+               'train_batch_size': 4
+               },
+          'SBERTCrossEncoderFinetune':
+              {'n_epochs': 2,
+               'train_batch_size': 4
+               }
           }
 
 
@@ -42,7 +52,7 @@ def get_handler(name):
         return SVHN_Handler
     elif name == 'CIFAR10':
         return CIFAR10_Handler
-    elif name == 'STS':
+    elif name in ['STS', 'STS_Classification', 'SBERTCrossEncoderFinetune']:
         return STS_Handler
 
 
@@ -57,6 +67,10 @@ def get_dataset(name):
         return get_CIFAR10(get_handler(name))
     elif name == 'STS':
         return get_STJ_STS(get_handler(name))
+    elif name == 'STS_Classification':
+        return get_STJ_STS_Classification(get_handler(name))
+    elif name == 'SBERTCrossEncoderFinetune':
+            return get_STS_Classification(get_handler(name))
     else:
         raise NotImplementedError
 
@@ -72,6 +86,10 @@ def get_net(name, device):
         return Net(CIFAR10_Net, params[name], device)
     elif name == 'STS':
         return Net(SBERT_Net, params[name], device)
+    elif name == 'STS_Cross':
+        return Net(SBERT_CrossEncoder, params[name], device)
+    elif name == 'SBERTCrossEncoderFinetune':
+        return Net(SBERTCrossEncoderFinetune, params[name], device)
     else:
         raise NotImplementedError
 

@@ -11,13 +11,21 @@ from sentence_transformers import SentenceTransformer, LoggingHandler, losses, m
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
 
+from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.cross_encoder.evaluation import CESoftmaxAccuracyEvaluator
+
+from sklearn.model_selection import train_test_split
+
 
 class Net:
     def __init__(self, net, params, device):
         self.net = net
-        self.is_sbert = net.__name__ == 'SBERT_Net'
-        if self.is_sbert:
+        if net.__name__ in ['STS', 'STS_Classification', 'SBERTCrossEncoderFinetune']:
+            self.is_sbert = True
             self.net = self.net(device)
+        else:
+            self.is_sbert = False
+
         self.params = params
         self.device = device
 
@@ -60,6 +68,9 @@ class Net:
         return preds
 
     def predict_prob(self, data):
+        if self.is_sbert:
+            return self.net.predict_prob(data)
+
         self.clf.eval()
         probs = torch.zeros([len(data), len(np.unique(data.Y))])
         loader = DataLoader(data, shuffle=False, **self.params['test_args'])
@@ -196,6 +207,9 @@ class SBERT_Net():
         cosine_scores = util.pytorch_cos_sim(embeddings_A, embeddings_B)
         return np.array([cosine_scores[i][i] for i, s in enumerate(data.X)])
 
+    def predict_prob(self, data):
+        pass
+
     def train(self, data, options):
         train_samples = self.convert_data_to_train(data.X, data.Y)
         train_dataloader = DataLoader(train_samples, shuffle=True,
@@ -217,7 +231,7 @@ class SBERT_Net():
 
     def convert_data_to_train(self, X, y):
         samples = []
-        for i, row in tqdm(enumerate(X)):
+        for i, row in tqdm(enumerate(X), desc='Converting training data: '):
             score = float(y[i]) / 5.0  # Normalize score to range 0 ... 1
             example = InputExample(texts=[row[0], row[1]],
                                    label=score)
@@ -230,3 +244,104 @@ class SBERT_Net():
 
     def get_embedding_dim(self):
         return 50
+
+
+class SBERT_CrossEncoder():
+    PREDICT_BATCH_SIZE = 16
+
+    def __init__(self, device='cpu'):
+        self.model = None
+        self.device = device
+
+    def predict(self, data):
+        return self.model.predict(data.X, apply_softmax=True, batch_size=SBERT_CrossEncoder.PREDICT_BATCH_SIZE,
+                                  convert_to_tensor=True, convert_to_numpy=False, show_progress_bar=True)
+
+    def predict_prob(self, data):
+        return self.model.predict(data.X, apply_softmax=True, batch_size=SBERT_CrossEncoder.PREDICT_BATCH_SIZE,
+                                  convert_to_tensor=True, convert_to_numpy=False, show_progress_bar=True)
+
+    def train(self, data, options):
+        # TODO implementar com continuação de treinamento
+        # Precisa alterar a forma como a estratégia retorna os novos exemplos
+        # Hoje o data é data Tn-1 + novos exemplos, e não só novos exemplos
+        self.model = self.build_model('models/itd-bert', self.device)
+        samples = self.convert_data_to_train(data.X, data.Y)
+        validation_percent = 0.25
+        validation_samples = samples[:int((validation_percent * len(samples)))]
+        train_samples = samples[int((validation_percent * len(samples))):]
+        train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=options["train_batch_size"])
+        # evaluator = CEBinaryClassificationEvaluator.from_input_examples(train_samples, name='sts-dev')
+
+        evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(validation_samples, name='sts-dev')
+
+        # Configure the training. We skip evaluation in this example
+        warmup_steps = math.ceil(
+            len(train_dataloader) * options["n_epochs"] * 0.1)  # 10% of train data for warm-up
+        # Train the model
+        self.model.fit(train_dataloader=train_dataloader,
+                       evaluator=evaluator,
+                       epochs=options["n_epochs"],
+                       warmup_steps=warmup_steps,
+                       show_progress_bar=True,
+                       evaluation_steps=20)
+
+    def build_model(self, base_model_path, device='cpu'):
+        return CrossEncoder(base_model_path, num_labels=2, max_length=512, device=device)
+
+    def convert_data_to_train(self, X, y):
+        samples = []
+        for i, row in tqdm(enumerate(X), desc='Converting training data: '):
+            example = InputExample(texts=[row[0], row[1]], label=y[i])
+            samples.append(example)
+        return samples
+
+    def get_embeddings(self, text):
+        # embeddings = self.model.encode([text], convert_to_tensor=True)
+        # return embeddings
+        raise 'Not yet implemented'
+
+    def get_embedding_dim(self):
+        # return 50
+        raise 'Not yet implemented'
+
+
+class SBERTCrossEncoderFinetune():
+    PREDICT_BATCH_SIZE = 16
+
+    def __init__(self, device='cpu'):
+        self.model = self.build_model('models/itd-bert', device)
+
+    def predict(self, data):
+        return self.model.predict(self.predict_data(data), apply_softmax=True, batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,
+                                  convert_to_tensor=True, convert_to_numpy=False, show_progress_bar=True).argmax(axis=1)
+
+    def predict_prob(self, data):
+        return self.model.predict(self.predict_data(data), apply_softmax=True, batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,
+                                  convert_to_tensor=True, convert_to_numpy=False, show_progress_bar=True)
+    def predict_data(self, data):
+        return np.array([x.texts for x in data])
+
+    def train(self, data, options):
+        # validation_percent = 0.1
+        # validation_samples = data[:int((validation_percent * len(data)))]
+        # train_samples = data[int((validation_percent * len(data))):]
+        # train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=options["train_batch_size"])
+        train_dataloader = DataLoader(data, shuffle=True, batch_size=options["train_batch_size"])
+
+        # evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(validation_samples, name='sts-dev')
+
+        # Configure the training. We skip evaluation in this example
+        warmup_steps = math.ceil(
+            len(train_dataloader) * options["n_epochs"] * 0.1)  # 10% of train data for warm-up
+        # Train the model
+        self.model.fit(train_dataloader=train_dataloader,
+                       # evaluator=evaluator,
+                       epochs=options["n_epochs"],
+                       warmup_steps=warmup_steps,
+                       show_progress_bar=True,
+                       # evaluation_steps=20
+                       )
+
+    def build_model(self, base_model_path, device='cpu'):
+        return CrossEncoder(base_model_path, num_labels=2, max_length=512, device=device)

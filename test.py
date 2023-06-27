@@ -14,14 +14,17 @@ torch.backends.cudnn.enabled = False
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-dataset = get_dataset('STS')                   # load dataset
-net = get_net('STS', device)                   # load network
-strategy = get_strategy('RandomSampling')(dataset, net)  # load strategy
+dataset = get_dataset('SBERTCrossEncoderFinetune')                   # load dataset
+# dataset = get_dataset('STS')                   # load dataset
+net = get_net('SBERTCrossEncoderFinetune', device)                   # load network
+# net = get_net('STS', device)                   # load network
+# strategy = get_strategy('RandomSampling')(dataset, net)  # load strategy
+strategy = get_strategy('LeastConfidence')(dataset, net)  # load strategy
 
 # start experiment
-n_init_labeled = 100
-n_round = 5
-n_query = 10
+n_init_labeled = 10
+n_round = 8
+n_query = 12
 dataset.initialize_labels(n_init_labeled)
 print(f"number of labeled pool: {n_init_labeled}")
 print(f"number of unlabeled pool: {dataset.n_pool-n_init_labeled}")
@@ -32,9 +35,12 @@ print()
 print("Round 0")
 strategy.train()
 preds = strategy.predict(dataset.get_test_data())
-print(f"Round 0 testing accuracy: {dataset.pearson_correlation(preds)}")
 
+
+print(f"Round 0 testing accuracy: {dataset.cal_test_acc(preds)}")
+print(preds)
 for rd in range(1, n_round+1):
+    print("#############################################")
     print(f"Round {rd}")
 
     # query
@@ -42,8 +48,11 @@ for rd in range(1, n_round+1):
 
     # update labels
     strategy.update(query_idxs)
-    strategy.train()
+    # strategy.train()
+    strategy.incremental_train(query_idxs)
 
     # calculate accuracy
     preds = strategy.predict(dataset.get_test_data())
-    print(f"Round {rd} testing accuracy: {dataset.pearson_correlation(preds)}")
+    print(preds)
+    # print(f"Round {rd} testing accuracy: {dataset.pearson_correlation(preds)}")
+    print(f"Round {rd} testing accuracy: {dataset.cal_test_acc(preds)}")

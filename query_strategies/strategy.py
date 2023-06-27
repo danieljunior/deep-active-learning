@@ -21,6 +21,10 @@ class Strategy:
         labeled_idxs, labeled_data = self.dataset.get_labeled_data()
         self.net.train(labeled_data)
 
+    def incremental_train(self, query_idxs):
+        labeled_idxs, labeled_data = self.dataset.get_query_data(query_idxs)
+        self.net.train(labeled_data)
+
     def predict(self, data):
         preds = self.net.predict(data)
         return preds
