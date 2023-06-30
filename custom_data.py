@@ -87,15 +87,15 @@ def get_STJ_STS_Classification(handler):
     data_train = pd.read_csv('./data/STS/train.csv').sample(n=1000, random_state=42)
     data_test = pd.read_csv('./data/STS/test.csv')
     X_train = data_train[['sentence_A', 'sentence_B']].values
-    y_train = np.fromiter(map(lambda x: 1 if x >= 4 else 0, data_train.score.values), dtype=int)
+    y_train = np.fromiter(map(lambda x: 1 if x >= 3 else 0, data_train.score.values), dtype=int)
     X_test = data_test[['sentence_A', 'sentence_B']].values
-    y_test = np.fromiter(map(lambda x: 1 if x >= 4 else 0, data_test.score.values), dtype=int)
+    y_test = np.fromiter(map(lambda x: 1 if x >= 3 else 0, data_test.score.values), dtype=int)
     return Data(X_train, torch.LongTensor(y_train),
                 X_test, torch.LongTensor(y_test), handler)
 
 
 def get_STS_Classification(handler):
-    data_train = pd.read_csv('./data/STS/train.csv').sample(n=100, random_state=10)
+    data_train = pd.read_csv('./data/STS/train.csv').sample(n=100, random_state=42)
     X_train = data_train[['sentence_A', 'sentence_B']].values
     y_train = np.fromiter(map(lambda x: 1 if x >= 4 else 0, data_train.score.values), dtype=int)
     train = []
@@ -105,7 +105,7 @@ def get_STS_Classification(handler):
 
     data_test = pd.read_csv('./data/STS/test.csv')
     X_test = data_test[['sentence_A', 'sentence_B']].values
-    y_test = np.fromiter(map(lambda x: 1 if x >= 4 else 0, data_test.score.values), dtype=int)
+    y_test = np.fromiter(map(lambda x: 1 if x >= 3 else 0, data_test.score.values), dtype=int)
     test = []
     for i, row in enumerate(X_test):
         example = InputExample(texts=[row[0], row[1]], label=y_test[i])

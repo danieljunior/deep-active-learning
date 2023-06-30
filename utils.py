@@ -37,7 +37,7 @@ params = {'MNIST':
                'train_batch_size': 4
                },
           'SBERTCrossEncoderFinetune':
-              {'n_epochs': 2,
+              {'n_epochs': 1,
                'train_batch_size': 4
                }
           }

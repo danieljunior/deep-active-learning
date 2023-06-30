@@ -4,6 +4,7 @@ LABEL author=DanielJunior email="danieljunior@id.uff.br"
 RUN mkdir -p /app
 COPY . /app
 WORKDIR /app
+COPY netrc /root/.netrc
 
 RUN conda update -n base conda &&\
     conda install -n base conda-libmamba-solver &&\
