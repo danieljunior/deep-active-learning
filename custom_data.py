@@ -18,6 +18,7 @@ class CustomData:
     def initialize_labels(self, num):
         # generate initial labeled pool
         tmp_idxs = np.arange(self.n_pool)
+        np.random.seed(42) #to always generate the same initialized labels
         np.random.shuffle(tmp_idxs)
         self.labeled_idxs[tmp_idxs[:num]] = True
 

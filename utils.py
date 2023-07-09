@@ -52,7 +52,7 @@ def get_handler(name):
         return SVHN_Handler
     elif name == 'CIFAR10':
         return CIFAR10_Handler
-    elif name in ['STS', 'STS_Classification', 'SBERTCrossEncoderFinetune']:
+    elif name in ['STS', 'STS_Classification', 'SBERTCrossEncoderFinetune', 'BertClassification']:
         return STS_Handler
 
 
@@ -69,7 +69,7 @@ def get_dataset(name):
         return get_STJ_STS(get_handler(name))
     elif name == 'STS_Classification':
         return get_STJ_STS_Classification(get_handler(name))
-    elif name == 'SBERTCrossEncoderFinetune':
+    elif name in ['SBERTCrossEncoderFinetune', 'BertClassification']:
             return get_STS_Classification(get_handler(name))
     else:
         raise NotImplementedError

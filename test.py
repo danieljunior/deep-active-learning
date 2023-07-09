@@ -1,117 +1,104 @@
-import argparse
-import numpy as np
 import torch
-from utils import get_dataset, get_net, get_strategy, get_params
-from pprint import pprint
-import wandb
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from transformers import BertTokenizer, BertForNextSentencePrediction
+import numpy as np
+from tqdm import tqdm  # for our progress bar
+from utils import get_dataset
 
-seed = 42
-# fix random seed
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.backends.cudnn.enabled = False
+
+class STSDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings):
+        self.encodings = encodings
+
+    def __getitem__(self, idx):
+        return {key: val[idx] for key, val in self.encodings.items()}
+
+    def __len__(self):
+        return len(self.encodings.input_ids)
+
 
 # device
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-# start experiment
-n_init_labeled = 12
-n_round = 5
-n_query = 8
-model_name = 'SBERTCrossEncoderFinetune'
-version = 'v1'
+baseline_model = 'BertClassification'
+raw_dataset = get_dataset(baseline_model)
 
-strategies = [
-    "RandomSampling",
-    "LeastConfidence",
-    "MarginSampling",
-    "EntropySampling",
-    # "LeastConfidenceDropout",
-    # "MarginSamplingDropout",
-    # "EntropySamplingDropout",
-    # "KMeansSampling",
-    # "KCenterGreedy",
-    # "BALDDropout",
-    # "AdversarialBIM",
-    # "AdversarialDeepFool"
-]
+_, all_train_data = raw_dataset.get_train_data()
+documents_pair = np.array(list(map(lambda x: x.texts, all_train_data)))
+labels = np.fromiter(map(lambda x: x.label, all_train_data), dtype=int).tolist()
 
-config = {
-    "n_init_labeled": n_init_labeled,
-    "n_round": n_round,
-    "n_query": n_query,
-    "train_config": get_params(model_name),
-    "model": model_name
-}
+tokenizer = BertTokenizer.from_pretrained('models/itd-bert')
+model = BertForNextSentencePrediction.from_pretrained('models/itd-bert')
 
-for strategy_name in strategies:
-    dataset = get_dataset(model_name)  # load dataset
-    net = get_net(model_name, device)  # load network
-    test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
+inputs = tokenizer(documents_pair[:, 0].tolist(), documents_pair[:, 1].tolist(),
+                   return_tensors='pt', max_length=512, truncation=True, padding='max_length')
+inputs['labels'] = inputs['labels'] = torch.LongTensor([labels]).T
 
-    print("==========>" + strategy_name + "<===========\n")
-    strategy = get_strategy(strategy_name)(dataset, net)  # load strategy
+dataset = STSDataset(inputs)
+loader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
 
-    config['strategy'] = strategy_name
-    config['test_data'] = test_data
-    run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
-    wandb.run.name = model_name + ' -> ' + strategy_name + ' -> Round 0'
+# activate training mode
+model.train()
+# initialize optimizer
+optim = torch.optim.AdamW(model.parameters(), lr=5e-6)
 
-    dataset.initialize_labels(n_init_labeled)
-    print(f"number of labeled pool: {n_init_labeled}")
-    print(f"number of unlabeled pool: {dataset.n_pool - n_init_labeled}")
-    print(f"number of unlabeled query data: {n_query}")
-    print(f"number of testing pool: {dataset.n_test}")
-    print()
+epochs = 1
 
-    # round 0 accuracy
-    print("Round 0")
-    _, initial_labeled_data = dataset.get_labeled_data()
-    initial_labeled_data = np.fromiter(map(lambda x: x.label, initial_labeled_data), dtype=int)
-    print(f"Initial labeled data: \t{initial_labeled_data}")
+for epoch in range(epochs):
+    # setup loop with TQDM and dataloader
+    loop = tqdm(loader, leave=True)
+    for batch in loop:
+        # initialize calculated gradients (from prev step)
+        optim.zero_grad()
+        # pull all tensor batches required for training
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        token_type_ids = batch['token_type_ids'].to(device)
+        labels = batch['labels'].to(device)
+        # process
+        outputs = model(input_ids, attention_mask=attention_mask,
+                        token_type_ids=token_type_ids,
+                        labels=labels)
+        # extract loss
+        loss = outputs.loss
+        # calculate loss for every parameter that needs grad update
+        loss.backward()
+        # update parameters
+        optim.step()
+        # print relevant info to progress bar
+        loop.set_description(f'Epoch {epoch}')
+        loop.set_postfix(loss=loss.item())
 
-    strategy.train()
-    preds = strategy.predict(dataset.get_test_data())
-    accuracy = dataset.cal_test_acc(preds)
-    print(f"Round 0 testing accuracy: {accuracy}")
-    print(f"Test data: \t{test_data}")
-    print(f"Predictions: \t{preds.numpy()}")
+model.eval()
+all_test_data = raw_dataset.get_test_data()
+test_documents_pair = np.array(list(map(lambda x: x.texts, all_test_data)))
+test_labels = np.fromiter(map(lambda x: x.label, all_test_data), dtype=int).tolist()
+test_inputs = tokenizer(test_documents_pair[:, 0].tolist(), test_documents_pair[:, 1].tolist(),
+                        return_tensors='pt', max_length=512, truncation=True, padding='max_length')
+test_inputs['labels'] = torch.LongTensor([test_labels])
+test_dataset = STSDataset(test_inputs)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4, shuffle=True)
+loop = tqdm(loader, leave=True)
 
-    wandb.log({
-        'round': 0,
-        'new_labeled_data': initial_labeled_data,
-        'predictions': preds.numpy(),
-        'test accuracy': accuracy})
-    run.finish()
+true_labels = []
+predicted_labels = []
+predicted_probs = []
 
-    for rd in range(1, n_round + 1):
-        run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
-        wandb.run.name = model_name + ' -> ' + strategy_name + " -> Round " + str(rd)
-        print(f"\nRound {rd}")
+for batch in loop:
+    input_ids = batch['input_ids'].to(device)
+    attention_mask = batch['attention_mask'].to(device)
+    token_type_ids = batch['token_type_ids'].to(device)
+    true_labels.append(batch['labels'].T[0])
+    # process
+    outputs = model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+                    # labels=labels,
+                    output_hidden_states=True)
+    predicted_labels.append(outputs.logits.data.max(1)[1])
+    predicted_probs.append(torch.nn.functional.softmax(outputs.logits.data, dim=1))
+    # to get embbedings
+    # hidden_states = outputs.hidden_states
+    # concatened_last_four_layers = torch.cat(outputs.hidden_states[-4:], -1) #tensor of shape (batch_size, seq_len, 4 * hidden_size)
 
-        # query
-        query_idxs = strategy.query(n_query)
-        _, new_labeled_data = dataset.get_query_data(query_idxs)
-        new_labeled_data = np.fromiter(map(lambda x: x.label, new_labeled_data), dtype=int)
-        print(f"New labeled data: \t{new_labeled_data}")
-        # update labels
-        strategy.update(query_idxs)
-        # strategy.train()
-        strategy.incremental_train(query_idxs)
-
-        # calculate accuracy
-        preds = strategy.predict(dataset.get_test_data())
-        accuracy = dataset.cal_test_acc(preds)
-
-        print(f"Round {rd} testing accuracy: {accuracy}")
-        print(f"Test data: \t{test_data}")
-        print(f"Predictions: \t{preds.numpy()}")
-
-        wandb.log({
-            'round': rd,
-            'new_labeled_data': new_labeled_data,
-            'predictions': preds.numpy(),
-            'test accuracy': accuracy})
-        run.finish()
-    print("================================================================")
+test_acc = 1.0 * (torch.cat(true_labels) == torch.cat(predicted_labels)).sum().item() / len(torch.cat(true_labels))
+print(test_acc)
