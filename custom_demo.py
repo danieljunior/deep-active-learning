@@ -22,7 +22,7 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 # start experiment
 version = 'v6'
-seeds = [10, 20, 30]
+seeds = [10]
 samples = [250, 500, 1000]
 n_init_labeleds = [10, 20, 50]
 n_queries = [10, 20, 30]
@@ -68,13 +68,10 @@ for seed in seeds:
         dataset = get_dataset(baseline_model, sample, seed)  # load dataset
         net = SBERTCrossEncoderFinetune(device)  # load network
 
-        baseline_train_params = {'n_epochs': 1,
-                                 'train_batch_size': 4}
-
         _, all_train_data = dataset.get_train_data()
         test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
 
-        config = {"train_config": baseline_train_params,
+        config = {"train_config": train_params,
                   "model": baseline_model,
                   "test_data": test_data,
                   "seed": seed,
@@ -84,7 +81,7 @@ for seed in seeds:
         run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
         wandb.run.name = baseline_model + ' -> BASELINE'
 
-        net.train(all_train_data, params)
+        net.train(all_train_data, train_params)
         preds = net.predict(dataset.get_test_data())
         accuracy = dataset.cal_test_acc(preds)
 
