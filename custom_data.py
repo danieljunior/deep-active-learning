@@ -95,8 +95,8 @@ def get_STJ_STS_Classification(handler):
                 X_test, torch.LongTensor(y_test), handler)
 
 
-def get_STS_Classification(handler):
-    data_train = pd.read_csv('./data/STS/train.csv').sample(n=100, random_state=42)
+def get_STS_Classification(handler, sample=100, seed=42):
+    data_train = pd.read_csv('./data/STS/train.csv').sample(n=sample, random_state=seed)
     X_train = data_train[['sentence_A', 'sentence_B']].values
     y_train = np.fromiter(map(lambda x: 1 if x >= 4 else 0, data_train.score.values), dtype=int)
     train = []

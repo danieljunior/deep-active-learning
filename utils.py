@@ -2,7 +2,10 @@ from torchvision import transforms
 from handlers import MNIST_Handler, SVHN_Handler, CIFAR10_Handler, STS_Handler
 from custom_data import get_MNIST, get_FashionMNIST, get_SVHN, get_CIFAR10, get_STJ_STS, \
     get_STJ_STS_Classification, get_STS_Classification
-from nets import Net, MNIST_Net, SVHN_Net, CIFAR10_Net, SBERT_Net, SBERT_CrossEncoder, SBERTCrossEncoderFinetune
+from nets import Net, MNIST_Net, SVHN_Net, CIFAR10_Net, SBERT_Net, SBERT_CrossEncoder, \
+    SBERTCrossEncoderFinetune
+from custom_nets import BertForNSP
+from custom_nets import Net as CustomNet
 from query_strategies import RandomSampling, LeastConfidence, MarginSampling, EntropySampling, \
     LeastConfidenceDropout, MarginSamplingDropout, EntropySamplingDropout, \
     KMeansSampling, KCenterGreedy, BALDDropout, \
@@ -39,6 +42,10 @@ params = {'MNIST':
           'SBERTCrossEncoderFinetune':
               {'n_epochs': 1,
                'train_batch_size': 4
+               },
+          'BertClassification':
+              {'n_epochs': 1,
+               'train_batch_size': 4
                }
           }
 
@@ -56,7 +63,7 @@ def get_handler(name):
         return STS_Handler
 
 
-def get_dataset(name):
+def get_dataset(name, sample=10, seed=42):
     if name == 'MNIST':
         return get_MNIST(get_handler(name))
     elif name == 'FashionMNIST':
@@ -70,7 +77,7 @@ def get_dataset(name):
     elif name == 'STS_Classification':
         return get_STJ_STS_Classification(get_handler(name))
     elif name in ['SBERTCrossEncoderFinetune', 'BertClassification']:
-            return get_STS_Classification(get_handler(name))
+            return get_STS_Classification(get_handler(name), sample, seed)
     else:
         raise NotImplementedError
 
@@ -90,6 +97,8 @@ def get_net(name, device):
         return Net(SBERT_CrossEncoder, params[name], device)
     elif name == 'SBERTCrossEncoderFinetune':
         return Net(SBERTCrossEncoderFinetune, params[name], device)
+    elif name == 'BertClassification':
+        return CustomNet(BertForNSP, params[name], device)
     else:
         raise NotImplementedError
 
@@ -119,6 +128,8 @@ def get_strategy(name):
         return KCenterGreedy
     elif name == "BALDDropout":
         return BALDDropout
+    elif name == "BALD":
+        return BALD
     elif name == "AdversarialBIM":
         return AdversarialBIM
     elif name == "AdversarialDeepFool":

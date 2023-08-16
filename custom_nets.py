@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm
+from transformers import BertTokenizer, BertForNextSentencePrediction
 
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -15,72 +15,48 @@ from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CESoftmaxAccuracyEvaluator
 
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 
 class Net:
-    def __init__(self, net, params, device):
-        self.net = net
-        if net.__name__ in ['STS', 'STS_Classification', 'SBERTCrossEncoderFinetune']:
-            self.is_sbert = True
-            self.net = self.net(device)
-        else:
-            self.is_sbert = False
-
+    def __init__(self, net, params, device, model_path='models/bert-base-cased-pt-br'):
+        # self.net = self.net(device)
+        self.net = net(device, model_path)
         self.params = params
         self.device = device
 
     def train(self, data):
-
-        if self.is_sbert:
-            self.train_sbert(data, self.params)
-        else:
-            n_epoch = self.params['n_epoch']
-            self.clf = self.net().to(self.device)
-            self.clf.train()
-            optimizer = optim.SGD(self.clf.parameters(), **self.params['optimizer_args'])
-
-            loader = DataLoader(data, shuffle=True, **self.params['train_args'])
-            for epoch in tqdm(range(1, n_epoch + 1), ncols=100):
-                for batch_idx, (x, y, idxs) in enumerate(loader):
-                    x, y = x.to(self.device), y.to(self.device)
-                    optimizer.zero_grad()
-                    out, e1 = self.clf(x)
-                    loss = F.cross_entropy(out, y)
-                    loss.backward()
-                    optimizer.step()
-
-    def train_sbert(self, data, params):
-        self.net.train(data, params)
+        self.net.train(data, self.params)
 
     def predict(self, data):
-        if self.is_sbert:
-            return self.net.predict(data)
+        # if self.is_sbert:
+        return self.net.predict(data)
 
-        self.clf.eval()
-        preds = torch.zeros(len(data), dtype=data.Y.dtype)
-        loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        with torch.no_grad():
-            for x, y, idxs in loader:
-                x, y = x.to(self.device), y.to(self.device)
-                out, e1 = self.clf(x)
-                pred = out.max(1)[1]
-                preds[idxs] = pred.cpu()
-        return preds
+        # self.clf.eval()
+        # preds = torch.zeros(len(data), dtype=data.Y.dtype)
+        # loader = DataLoader(data, shuffle=False, **self.params['test_args'])
+        # with torch.no_grad():
+        #     for x, y, idxs in loader:
+        #         x, y = x.to(self.device), y.to(self.device)
+        #         out, e1 = self.clf(x)
+        #         pred = out.max(1)[1]
+        #         preds[idxs] = pred.cpu()
+        # return preds
 
     def predict_prob(self, data):
-        if self.is_sbert:
-            return self.net.predict_prob(data)
+        # if self.is_sbert:
+        return self.net.predict_prob(data)
 
-        self.clf.eval()
-        probs = torch.zeros([len(data), len(np.unique(data.Y))])
-        loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        with torch.no_grad():
-            for x, y, idxs in loader:
-                x, y = x.to(self.device), y.to(self.device)
-                out, e1 = self.clf(x)
-                prob = F.softmax(out, dim=1)
-                probs[idxs] = prob.cpu()
-        return probs
+        # self.clf.eval()
+        # probs = torch.zeros([len(data), len(np.unique(data.Y))])
+        # loader = DataLoader(data, shuffle=False, **self.params['test_args'])
+        # with torch.no_grad():
+        #     for x, y, idxs in loader:
+        #         x, y = x.to(self.device), y.to(self.device)
+        #         out, e1 = self.clf(x)
+        #         prob = F.softmax(out, dim=1)
+        #         probs[idxs] = prob.cpu()
+        # return probs
 
     def predict_prob_dropout(self, data, n_drop=10):
         self.clf.train()
@@ -110,86 +86,16 @@ class Net:
         return probs
 
     def get_embeddings(self, data):
-        self.clf.eval()
-        embeddings = torch.zeros([len(data), self.clf.get_embedding_dim()])
-        loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        with torch.no_grad():
-            for x, y, idxs in loader:
-                x, y = x.to(self.device), y.to(self.device)
-                out, e1 = self.clf(x)
-                embeddings[idxs] = e1.cpu()
-        return embeddings
-
-
-class MNIST_Net(nn.Module):
-    def __init__(self):
-        super(MNIST_Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        e1 = F.relu(self.fc1(x))
-        x = F.dropout(e1, training=self.training)
-        x = self.fc2(x)
-        return x, e1
-
-    def get_embedding_dim(self):
-        return 50
-
-
-class SVHN_Net(nn.Module):
-    def __init__(self):
-        super(SVHN_Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3)
-        self.conv2 = nn.Conv2d(32, 32, kernel_size=3)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=3)
-        self.conv3_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(1152, 400)
-        self.fc2 = nn.Linear(400, 50)
-        self.fc3 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(F.max_pool2d(self.conv3_drop(self.conv3(x)), 2))
-        x = x.view(-1, 1152)
-        x = F.relu(self.fc1(x))
-        e1 = F.relu(self.fc2(x))
-        x = F.dropout(e1, training=self.training)
-        x = self.fc3(x)
-        return x, e1
-
-    def get_embedding_dim(self):
-        return 50
-
-
-class CIFAR10_Net(nn.Module):
-    def __init__(self):
-        super(CIFAR10_Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=5)
-        self.conv2 = nn.Conv2d(32, 32, kernel_size=5)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=5)
-        self.fc1 = nn.Linear(1024, 50)
-        self.fc2 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(F.max_pool2d(self.conv3(x), 2))
-        x = x.view(-1, 1024)
-        e1 = F.relu(self.fc1(x))
-        x = F.dropout(e1, training=self.training)
-        x = self.fc2(x)
-        return x, e1
-
-    def get_embedding_dim(self):
-        return 50
+        return self.net.get_embeddings(data)
+        # self.clf.eval()
+        # embeddings = torch.zeros([len(data), self.clf.get_embedding_dim()])
+        # loader = DataLoader(data, shuffle=False, **self.params['test_args'])
+        # with torch.no_grad():
+        #     for x, y, idxs in loader:
+        #         x, y = x.to(self.device), y.to(self.device)
+        #         out, e1 = self.clf(x)
+        #         embeddings[idxs] = e1.cpu()
+        # return embeddings
 
 
 # class SBERT_Net(nn.Module):
@@ -313,12 +219,15 @@ class SBERTCrossEncoderFinetune():
         self.model = self.build_model('models/bert-base-cased-pt-br', device)
 
     def predict(self, data):
-        return self.model.predict(self.predict_data(data), apply_softmax=True, batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,
+        return self.model.predict(self.predict_data(data), apply_softmax=True,
+                                  batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,
                                   convert_to_tensor=True, convert_to_numpy=False, show_progress_bar=True).argmax(axis=1)
 
     def predict_prob(self, data):
-        return self.model.predict(self.predict_data(data), apply_softmax=True, batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,
+        return self.model.predict(self.predict_data(data), apply_softmax=True,
+                                  batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,
                                   convert_to_tensor=True, convert_to_numpy=False, show_progress_bar=True)
+
     def predict_data(self, data):
         return np.array([x.texts for x in data])
 
@@ -345,3 +254,105 @@ class SBERTCrossEncoderFinetune():
 
     def build_model(self, base_model_path, device='cpu'):
         return CrossEncoder(base_model_path, num_labels=2, max_length=512, device=device)
+
+
+class BertForNSP():
+    def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
+        self.device = device
+        self.tokenizer = BertTokenizer.from_pretrained(model_path)
+        self.model = BertForNextSentencePrediction.from_pretrained(model_path)
+
+    def predict_outputs(self, batch, to_train=False):
+        input_ids = batch['input_ids'].to(self.device)
+        attention_mask = batch['attention_mask'].to(self.device)
+        token_type_ids = batch['token_type_ids'].to(self.device)
+        if to_train:
+            labels = batch['labels'].to(self.device)
+            return self.model(input_ids, attention_mask=attention_mask,
+                              token_type_ids=token_type_ids,
+                              labels=labels)
+        else:
+            return self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+                              output_hidden_states=True)
+
+    def predict(self, data, output_probs=False):
+        test_loader = self.convert_data_to_train(data)
+        loop = tqdm(test_loader, leave=True)
+
+        true_labels = []
+        predicted_labels = []
+        predicted_probs = []
+        self.model.eval()
+        for batch in loop:
+            outputs = self.predict_outputs(batch)
+            true_labels.append(batch['labels'].T[0])
+            predicted_labels.append(outputs.logits.data.max(1)[1])
+            predicted_probs.append(torch.nn.functional.softmax(outputs.logits.data, dim=1))
+
+        if output_probs:
+            return torch.cat(predicted_labels), torch.cat(predicted_probs)
+        else:
+            return torch.cat(predicted_labels)
+
+    def predict_prob(self, data):
+        # import pdb; pdb.set_trace()
+        _, probs = self.predict(data, output_probs=True)
+        return probs
+
+    def train(self, data, options):
+        train_dataloader = self.convert_data_to_train(data)
+        self.model.train()
+        optim = torch.optim.AdamW(self.model.parameters(), lr=5e-6)
+        for epoch in range(options["n_epochs"]):
+            # setup loop with TQDM and dataloader
+            loop = tqdm(train_dataloader, leave=True)
+            for batch in loop:
+                # initialize calculated gradients (from prev step)
+                optim.zero_grad()
+                outputs = self.predict_outputs(batch, to_train=True)
+                # extract loss
+                loss = outputs.loss
+                # calculate loss for every parameter that needs grad update
+                loss.backward()
+                # update parameters
+                optim.step()
+                # print relevant info to progress bar
+                loop.set_description(f'Epoch {epoch}')
+                loop.set_postfix(loss=loss.item())
+
+    def convert_data_to_train(self, data):
+        X = np.array(list(map(lambda x: x.texts, data)))
+        y = np.fromiter(map(lambda x: x.label, data), dtype=int).tolist()
+
+        inputs = self.tokenizer(X[:, 0].tolist(), X[:, 1].tolist(),
+                                return_tensors='pt', max_length=512, truncation=True, padding='max_length')
+        inputs['labels'] = inputs['labels'] = torch.LongTensor([y]).T
+        dataset = self.STSDataset(inputs)
+        return torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
+
+    def get_embeddings(self, data):
+        dataloader = self.convert_data_to_train(data)
+        loop = tqdm(dataloader, leave=True)
+        self.model.eval()
+        outputs = []
+        with torch.no_grad():
+            for batch in loop:
+                batch_output = self.predict_outputs(batch)
+                pooled_output = torch.cat(tuple([batch_output.hidden_states[i]
+                                                 for i in [-4, -3, -2, -1]]),
+                                          dim=-1)
+                outputs.append(pooled_output[:, 0, :])
+        return torch.cat(outputs)
+
+    def get_embedding_dim(self):
+        return 3072
+
+    class STSDataset(torch.utils.data.Dataset):
+        def __init__(self, encodings):
+            self.encodings = encodings
+
+        def __getitem__(self, idx):
+            return {key: val[idx] for key, val in self.encodings.items()}
+
+        def __len__(self):
+            return len(self.encodings.input_ids)

@@ -28,8 +28,8 @@ _, all_train_data = raw_dataset.get_train_data()
 documents_pair = np.array(list(map(lambda x: x.texts, all_train_data)))
 labels = np.fromiter(map(lambda x: x.label, all_train_data), dtype=int).tolist()
 
-tokenizer = BertTokenizer.from_pretrained('models/itd-bert')
-model = BertForNextSentencePrediction.from_pretrained('models/itd-bert')
+tokenizer = BertTokenizer.from_pretrained('models/bert-base-cased-pt-br')
+model = BertForNextSentencePrediction.from_pretrained('models/bert-base-cased-pt-br')
 
 inputs = tokenizer(documents_pair[:, 0].tolist(), documents_pair[:, 1].tolist(),
                    return_tensors='pt', max_length=512, truncation=True, padding='max_length')
@@ -76,15 +76,14 @@ test_documents_pair = np.array(list(map(lambda x: x.texts, all_test_data)))
 test_labels = np.fromiter(map(lambda x: x.label, all_test_data), dtype=int).tolist()
 test_inputs = tokenizer(test_documents_pair[:, 0].tolist(), test_documents_pair[:, 1].tolist(),
                         return_tensors='pt', max_length=512, truncation=True, padding='max_length')
-test_inputs['labels'] = torch.LongTensor([test_labels])
+test_inputs['labels'] = torch.LongTensor([test_labels]).T
 test_dataset = STSDataset(test_inputs)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4, shuffle=True)
-loop = tqdm(loader, leave=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4)
+loop = tqdm(test_loader, leave=True)
 
 true_labels = []
 predicted_labels = []
 predicted_probs = []
-
 for batch in loop:
     input_ids = batch['input_ids'].to(device)
     attention_mask = batch['attention_mask'].to(device)
@@ -101,4 +100,4 @@ for batch in loop:
     # concatened_last_four_layers = torch.cat(outputs.hidden_states[-4:], -1) #tensor of shape (batch_size, seq_len, 4 * hidden_size)
 
 test_acc = 1.0 * (torch.cat(true_labels) == torch.cat(predicted_labels)).sum().item() / len(torch.cat(true_labels))
-print(test_acc)
+print('Test accuracy:', test_acc)
