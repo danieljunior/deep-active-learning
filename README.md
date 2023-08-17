@@ -71,6 +71,7 @@ If you use our code in your research or applications, please consider citing our
 ## Docker
 
 - `docker build --force-rm -t deepal .`
+- `docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --force-rm -t deepal .`
 - `docker run --rm --shm-size="2g" -v ${PWD}:/app -w /app -p 8888:8888 --name deepal -itd deepal bash`
 - `docker exec -it deepal bash`
 
