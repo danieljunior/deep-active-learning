@@ -8,7 +8,7 @@ class KMeansSampling(Strategy):
 
     def query(self, n):
         unlabeled_idxs, unlabeled_data = self.dataset.get_unlabeled_data()
-        embeddings = self.get_embeddings(unlabeled_data)
+        embeddings = self.get_embeddings(unlabeled_data).cpu()
         embeddings = embeddings.numpy()
         cluster_learner = KMeans(n_clusters=n)
         cluster_learner.fit(embeddings)

@@ -3,6 +3,7 @@ data/
 models/
 netrc
 wandb/
+nohup.out
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
 **/*.py[cod]

@@ -21,7 +21,7 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
 # start experiment
-version = 'v6'
+version = 'dgx_v0'
 seeds = [10]
 samples = [250, 500, 1000]
 n_init_labeleds = [10, 20, 50]
@@ -45,7 +45,7 @@ base_models = {
 }
 
 train_params = {'n_epochs': 1,
-                'train_batch_size': 4
+                'train_batch_size': 16
                 }
 
 strategies = [
@@ -84,7 +84,7 @@ for seed in seeds:
         wandb.run.name = baseline_model + ' -> BASELINE'
 
         net.train(all_train_data, train_params)
-        preds = net.predict(dataset.get_test_data())
+        preds = net.predict(dataset.get_test_data()).cpu()
         accuracy = dataset.cal_test_acc(preds)
 
         print(f"Baseline testing accuracy: {accuracy}")
@@ -141,7 +141,7 @@ for seed in seeds:
                         wandb.run.name = model_name + ' -> ' + strategy_name
 
                         strategy.train()
-                        preds = strategy.predict(dataset.get_test_data())
+                        preds = strategy.predict(dataset.get_test_data()).cpu()
                         accuracy = dataset.cal_test_acc(preds)
                         print(f"Round 0 testing accuracy: {accuracy}")
                         print(f"Test data: \t{test_data}")
@@ -169,7 +169,7 @@ for seed in seeds:
                             strategy.incremental_train(query_idxs)
 
                             # calculate accuracy
-                            preds = strategy.predict(dataset.get_test_data())
+                            preds = strategy.predict(dataset.get_test_data()).cpu()
                             accuracy = dataset.cal_test_acc(preds)
 
                             print(f"Round {rd} testing accuracy: {accuracy}")

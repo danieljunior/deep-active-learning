@@ -258,9 +258,10 @@ class SBERTCrossEncoderFinetune():
 
 class BertForNSP():
     def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
-        self.device = device
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.tokenizer = BertTokenizer.from_pretrained(model_path)
         self.model = BertForNextSentencePrediction.from_pretrained(model_path)
+        self.model.to(self.device)
 
     def predict_outputs(self, batch, to_train=False):
         input_ids = batch['input_ids'].to(self.device)
