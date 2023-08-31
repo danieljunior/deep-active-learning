@@ -9,7 +9,7 @@ class KCenterGreedy(Strategy):
 
     def query(self, n):
         labeled_idxs, train_data = self.dataset.get_train_data()
-        embeddings = self.get_embeddings(train_data)
+        embeddings = self.get_embeddings(train_data).cpu()
         embeddings = embeddings.numpy()
 
         dist_mat = np.matmul(embeddings, embeddings.transpose())

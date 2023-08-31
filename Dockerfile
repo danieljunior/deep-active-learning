@@ -21,7 +21,6 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86
 RUN mkdir -p /app
 COPY . /app
 WORKDIR /app
-COPY netrc /root/.netrc
 
 RUN addgroup --gid $GROUP_ID user && adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
 RUN chown -R $USER_ID:$GROUP_ID /app && chmod -R a=rwx /app && \
