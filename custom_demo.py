@@ -35,11 +35,13 @@ n_round = 5
 # n_round = 2
 
 base_models = {
-    'BERT': 'models/bert-base-cased-pt-br',
-    'BERTikal': 'models/BERTikal',
-    'ITD_BERT': 'models/itd_bert',
-    'Longformer': 'models/bert_longformer',
-    'ITD_Longformer': 'models/itd_bert_longformer'
+    'BERT': 'neuralmind/bert-base-portuguese-cased',
+    'ITD_BERT': 'melll-uff/itd_bert',
+    'BERTikal': 'felipemaiapolo/legalnlp-bert',
+    'Legal_BERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm',
+    'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
+    'Longformer': 'melll-uff/longformer',
+    'ITD_Longformer': 'melll-uff/itd_longformer'
 }
 
 train_params = {'n_epochs': 1,
