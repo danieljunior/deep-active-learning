@@ -18,7 +18,7 @@ class CustomData:
     def initialize_labels(self, num):
         # generate initial labeled pool
         tmp_idxs = np.arange(self.n_pool)
-        np.random.seed(42) #to always generate the same initialized labels
+        np.random.seed(42)  # to always generate the same initialized labels
         np.random.shuffle(tmp_idxs)
         self.labeled_idxs[tmp_idxs[:num]] = True
 
@@ -112,3 +112,62 @@ def get_STS_Classification(handler, sample=100, seed=42):
         example = InputExample(texts=[row[0], row[1]], label=y_test[i])
         test.append(example)
     return CustomData(np.array(train), np.array(test))
+
+
+def get_STS_data(dataset, sample=100, seed=42):
+    config = get_STS_data_config(dataset)
+    data_train = pd.read_csv(config['train_path']).sample(n=sample, random_state=seed)
+    X_train = data_train[config['train_documents_columns']].values
+    y_train = np.fromiter(map(lambda x: 1 if x >= config['train_threshold_classification_normalize'] else 0,
+                              data_train[config['train_score_column']].values),
+                          dtype=int)
+    train = []
+    for i, row in enumerate(X_train):
+        example = InputExample(texts=[row[0], row[1]], label=y_train[i])
+        train.append(example)
+
+    data_test = pd.read_csv(config['test_path'])
+    X_test = data_test[config['test_documents_columns']].values
+    y_test = np.fromiter(map(lambda x: 1 if x >= config['test_threshold_classification_normalize'] else 0,
+                             data_test[config['test_score_column']].values), dtype=int)
+    test = []
+    for i, row in enumerate(X_test):
+        example = InputExample(texts=[row[0], row[1]], label=y_test[i])
+        test.append(example)
+    return CustomData(np.array(train), np.array(test))
+
+
+def get_STS_data_config(dataset):
+    config = {
+        'local_stj': {
+            'train_path': './data/STS/train.csv',
+            'test_path': './data/STS/test.csv',
+            'train_documents_columns': ['sentence_A', 'sentence_B'],
+            'test_documents_columns': ['sentence_A', 'sentence_B'],
+            'train_score_column': 'score',
+            'test_score_column': 'score',
+            'train_threshold_classification_normalize': 4,
+            'test_threshold_classification_normalize': 3
+        },
+        'iris_stj_local_stj': {
+            'train_path': './data/STS/IRIS/train.csv',
+            'test_path': './data/STS/test.csv',
+            'train_documents_columns': ['sentence1', 'sentence2'],
+            'test_documents_columns': ['sentence_A', 'sentence_B'],
+            'train_score_column': 'relatedness_score',
+            'test_score_column': 'score',
+            'train_threshold_classification_normalize': 4,
+            'test_threshold_classification_normalize': 3
+        },
+        'iris_stj': {
+            'train_path': './data/STS/IRIS/train.csv',
+            'test_path': './data/STS/IRIS/test.csv',
+            'train_documents_columns': ['sentence1', 'sentence2'],
+            'test_documents_columns': ['sentence1', 'sentence1'],
+            'train_score_column': 'relatedness_score',
+            'test_score_column': 'relatedness_score',
+            'train_threshold_classification_normalize': 4,
+            'test_threshold_classification_normalize': 4
+        },
+    }
+    return config[dataset]
