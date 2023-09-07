@@ -309,8 +309,8 @@ class SBERT_CrossEncoder():
 class SBERTCrossEncoderFinetune():
     PREDICT_BATCH_SIZE = 16
 
-    def __init__(self, device='cpu'):
-        self.model = self.build_model('models/bert-base-cased-pt-br', device)
+    def __init__(self, model_path, device='cpu'):
+        self.model = self.build_model(model_path, device)
 
     def predict(self, data):
         return self.model.predict(self.predict_data(data), apply_softmax=True, batch_size=SBERTCrossEncoderFinetune.PREDICT_BATCH_SIZE,

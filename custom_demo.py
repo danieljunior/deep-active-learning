@@ -28,13 +28,21 @@ n_init_labeleds = [10, 20, 50, 100]
 n_queries = [10, 20, 30]
 n_round = 5
 
+# version = 'desenv_v0'
 # seeds = [10]
+# datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
+# # datasets = ['local_stj']
 # samples = [50]
 # n_init_labeleds = [10]
 # n_queries = [10]
 # n_round = 2
 
-base_models = {
+sbert_base_models = {
+    'SBERT_BERTibaum': 'melll-uff/sbert_ptbr',
+    'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
+    'SBERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm-gpl-nli-sts-v1'
+    }
+nsp_base_models = {
     'BERT': 'neuralmind/bert-base-portuguese-cased',
     'ITD_BERT': 'melll-uff/itd_bert',
     'BERTikal': 'felipemaiapolo/legalnlp-bert',
@@ -42,8 +50,7 @@ base_models = {
     'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
     'Longformer': 'melll-uff/longformer',
     'ITD_Longformer': 'melll-uff/itd_longformer'
-}
-
+    }
 train_params = {'n_epochs': 1,
                 # 'train_batch_size': 4
                 'train_batch_size': 16
@@ -69,42 +76,43 @@ for dataset_name in datasets:
         for sample in samples:
             ################################BASELINE#######################
             print("============================>BASELINE<=============================\n")
-            baseline_model = 'SBERTCrossEncoderFinetune'
-            dataset = get_STS_data(dataset_name, sample, seed)  # load dataset
-            net = SBERTCrossEncoderFinetune(device)  # load network
+            for model_name, model_path in sbert_base_models.items():
 
-            _, all_train_data = dataset.get_train_data()
-            test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
+                dataset = get_STS_data(dataset_name, sample, seed)  # load dataset
+                net = SBERTCrossEncoderFinetune(model_path, device)  # load network
 
-            config = {"train_config": train_params,
-                      "model": baseline_model,
-                      "test_data": test_data,
-                      "seed": seed,
-                      "samples": sample,
-                      "strategy": "ALL TRAIN DATA",
-                      "dataset": dataset_name.upper()}
+                _, all_train_data = dataset.get_train_data()
+                test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
 
-            run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
-            wandb.run.name = baseline_model + ' -> BASELINE'
+                config = {"train_config": train_params,
+                          "model": model_name,
+                          "test_data": test_data,
+                          "seed": seed,
+                          "samples": sample,
+                          "strategy": "ALL TRAIN DATA",
+                          "dataset": dataset_name.upper()}
 
-            net.train(all_train_data, train_params)
-            preds = net.predict(dataset.get_test_data()).cpu()
-            accuracy = dataset.cal_test_acc(preds)
+                run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
+                wandb.run.name = model_name + ' -> BASELINE'
 
-            print(f"Baseline testing accuracy: {accuracy}")
+                net.train(all_train_data, train_params)
+                preds = net.predict(dataset.get_test_data()).cpu()
+                accuracy = dataset.cal_test_acc(preds)
 
-            wandb.log({
-                "total_labeled_data": len(all_train_data),
-                'predictions': preds.numpy(),
-                'test_accuracy': accuracy})
-            run.finish()
-            print("================================================================\n")
+                print(f"Baseline testing accuracy: {accuracy}")
+
+                wandb.log({
+                    "total_labeled_data": len(all_train_data),
+                    'predictions': preds.numpy(),
+                    'test_accuracy': accuracy})
+                run.finish()
+                print("================================================================\n")
             #############################################
             for n_init_labeled in n_init_labeleds:
                 for n_query in n_queries:
                     for strategy_name in strategies:
                         print("============================>" + strategy_name + "<=============================\n")
-                        for model_name, model_path in base_models.items():
+                        for model_name, model_path in nsp_base_models.items():
                             print("============================>" + model_name + "<=============================\n")
                             config = {
                                 "n_init_labeled": n_init_labeled,
