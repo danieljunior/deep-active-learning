@@ -80,8 +80,6 @@ for dataset_name in datasets:
 
                 dataset = get_STS_data(dataset_name, sample, seed)  # load dataset
                 net = SBERTCrossEncoderFinetune(model_path, device)  # load network
-
-                _, all_train_data = dataset.get_train_data()
                 test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
 
                 config = {"train_config": train_params,
@@ -89,24 +87,47 @@ for dataset_name in datasets:
                           "test_data": test_data,
                           "seed": seed,
                           "samples": sample,
-                          "strategy": "ALL TRAIN DATA",
+                          "strategy": "RAW BASELINE",
                           "dataset": dataset_name.upper()}
 
                 run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
-                wandb.run.name = model_name + ' -> BASELINE'
+                wandb.run.name = model_name + ' -> RAW BASELINE'
 
-                net.train(all_train_data, train_params)
                 preds = net.predict(dataset.get_test_data()).cpu()
                 accuracy = dataset.cal_test_acc(preds)
-
-                print(f"Baseline testing accuracy: {accuracy}")
+                print(f"Raw Baseline testing accuracy: {accuracy}")
 
                 wandb.log({
-                    "total_labeled_data": len(all_train_data),
+                    "total_labeled_data": 0,
                     'predictions': preds.numpy(),
                     'test_accuracy': accuracy})
                 run.finish()
                 print("================================================================\n")
+
+                if model_name != 'SBERT_STJ_IRIS':
+                    config = {"train_config": train_params,
+                              "model": model_name,
+                              "test_data": test_data,
+                              "seed": seed,
+                              "samples": sample,
+                              "strategy": "ALL TRAIN DATA",
+                              "dataset": dataset_name.upper()}
+
+                    run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
+                    wandb.run.name = model_name + ' -> ALL TRAIN BASELINE'
+
+                    _, all_train_data = dataset.get_train_data()
+                    net.train(all_train_data, train_params)
+                    preds = net.predict(dataset.get_test_data()).cpu()
+                    accuracy = dataset.cal_test_acc(preds)
+                    print(f"Baseline testing accuracy: {accuracy}")
+
+                    wandb.log({
+                        "total_labeled_data": len(all_train_data),
+                        'predictions': preds.numpy(),
+                        'test_accuracy': accuracy})
+                    run.finish()
+                    print("================================================================\n")
             #############################################
             for n_init_labeled in n_init_labeleds:
                 for n_query in n_queries:
