@@ -22,7 +22,6 @@ logging.set_verbosity_error()
 
 class Net:
     def __init__(self, net, params, device, model_path='models/bert-base-cased-pt-br'):
-        # self.net = self.net(device)
         self.net = net(device, model_path)
         self.params = params
         self.device = device
@@ -31,34 +30,10 @@ class Net:
         self.net.train(data, self.params)
 
     def predict(self, data):
-        # if self.is_sbert:
         return self.net.predict(data)
 
-        # self.clf.eval()
-        # preds = torch.zeros(len(data), dtype=data.Y.dtype)
-        # loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        # with torch.no_grad():
-        #     for x, y, idxs in loader:
-        #         x, y = x.to(self.device), y.to(self.device)
-        #         out, e1 = self.clf(x)
-        #         pred = out.max(1)[1]
-        #         preds[idxs] = pred.cpu()
-        # return preds
-
     def predict_prob(self, data):
-        # if self.is_sbert:
         return self.net.predict_prob(data)
-
-        # self.clf.eval()
-        # probs = torch.zeros([len(data), len(np.unique(data.Y))])
-        # loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        # with torch.no_grad():
-        #     for x, y, idxs in loader:
-        #         x, y = x.to(self.device), y.to(self.device)
-        #         out, e1 = self.clf(x)
-        #         prob = F.softmax(out, dim=1)
-        #         probs[idxs] = prob.cpu()
-        # return probs
 
     def predict_prob_dropout(self, data, n_drop=10):
         self.clf.train()
@@ -89,19 +64,8 @@ class Net:
 
     def get_embeddings(self, data):
         return self.net.get_embeddings(data)
-        # self.clf.eval()
-        # embeddings = torch.zeros([len(data), self.clf.get_embedding_dim()])
-        # loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        # with torch.no_grad():
-        #     for x, y, idxs in loader:
-        #         x, y = x.to(self.device), y.to(self.device)
-        #         out, e1 = self.clf(x)
-        #         embeddings[idxs] = e1.cpu()
-        # return embeddings
 
-
-# class SBERT_Net(nn.Module):
-class SBERT_Net():
+class SBERT_Net:
     def __init__(self, device='cpu'):
         self.model = self.build_model('models/sentence_transformer', device)
 
@@ -154,7 +118,7 @@ class SBERT_Net():
         return 50
 
 
-class SBERT_CrossEncoder():
+class SBERT_CrossEncoder:
     PREDICT_BATCH_SIZE = 16
 
     def __init__(self, device='cpu'):
@@ -214,7 +178,7 @@ class SBERT_CrossEncoder():
         raise 'Not yet implemented'
 
 
-class SBERTCrossEncoderFinetune():
+class SBERTCrossEncoderFinetune:
     PREDICT_BATCH_SIZE = 16
 
     def __init__(self, model_path, device='cpu'):
@@ -234,31 +198,22 @@ class SBERTCrossEncoderFinetune():
         return np.array([x.texts for x in data])
 
     def train(self, data, options):
-        # validation_percent = 0.1
-        # validation_samples = data[:int((validation_percent * len(data)))]
-        # train_samples = data[int((validation_percent * len(data))):]
-        # train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=options["train_batch_size"])
         train_dataloader = DataLoader(data, shuffle=True, batch_size=options["train_batch_size"])
-
-        # evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(validation_samples, name='sts-dev')
-
         # Configure the training. We skip evaluation in this example
         warmup_steps = math.ceil(
             len(train_dataloader) * options["n_epochs"] * 0.1)  # 10% of train data for warm-up
         # Train the model
         self.model.fit(train_dataloader=train_dataloader,
-                       # evaluator=evaluator,
                        epochs=options["n_epochs"],
                        warmup_steps=warmup_steps,
                        show_progress_bar=True,
-                       # evaluation_steps=20
                        )
 
     def build_model(self, base_model_path, device='cpu'):
         return CrossEncoder(base_model_path, num_labels=2, max_length=512, device=device)
 
 
-class BertForNSP():
+class BertForNSP:
     def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.tokenizer = BertTokenizer.from_pretrained(model_path)
@@ -298,30 +253,8 @@ class BertForNSP():
             return torch.cat(predicted_labels)
 
     def predict_prob(self, data):
-        # import pdb; pdb.set_trace()
         _, probs = self.predict(data, output_probs=True)
         return probs
-
-    # def train(self, data, options):
-    #     train_dataloader = self.convert_data_to_train(data)
-    #     self.model.train()
-    #     optim = torch.optim.AdamW(self.model.parameters(), lr=5e-6)
-    #     for epoch in range(options["n_epochs"]):
-    #         # setup loop with TQDM and dataloader
-    #         loop = tqdm(train_dataloader, leave=True)
-    #         for batch in loop:
-    #             # initialize calculated gradients (from prev step)
-    #             optim.zero_grad()
-    #             outputs = self.predict_outputs(batch, to_train=True)
-    #             # extract loss
-    #             loss = outputs.loss
-    #             # calculate loss for every parameter that needs grad update
-    #             loss.backward()
-    #             # update parameters
-    #             optim.step()
-    #             # print relevant info to progress bar
-    #             loop.set_description(f'Epoch {epoch}')
-    #             loop.set_postfix(loss=loss.item())
 
     def train(self, data, options):
         train_dataloader = self.convert_data_to_train(data)
