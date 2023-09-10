@@ -5,9 +5,8 @@ from pprint import pprint
 import wandb
 
 from utils import get_dataset, get_net, get_strategy, get_params
-from custom_nets import Net as CustomNet, BertForNSP
+from custom_nets import Net as CustomNet, BertForNSP, SBERTCrossEncoderFinetune
 from custom_data import get_STS_data
-from nets import SBERTCrossEncoderFinetune
 
 seed = 42
 # fix random seed
@@ -20,36 +19,36 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
 # start experiment
-version = 'dgx_v1'
-seeds = [10]
-datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
-samples = [250, 500, 1000, 2000]
-n_init_labeleds = [10, 20, 50, 100]
-n_queries = [10, 20, 30]
-n_round = 5
-
-# version = 'desenv_v0'
+# version = 'dgx_v1'
 # seeds = [10]
 # datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
-# # datasets = ['local_stj']
-# samples = [50]
-# n_init_labeleds = [10]
-# n_queries = [10]
-# n_round = 2
+# samples = [250, 500, 1000, 2000]
+# n_init_labeleds = [10, 20, 50, 100]
+# n_queries = [10, 20, 30]
+# n_round = 5
+
+version = 'desenv_vx'
+seeds = [10]
+# datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
+datasets = ['local_stj']
+samples = [50]
+n_init_labeleds = [10]
+n_queries = [10]
+n_round = 2
 
 sbert_base_models = {
-    'SBERT_BERTibaum': 'melll-uff/sbert_ptbr',
-    'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
-    'SBERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm-gpl-nli-sts-v1'
+    # 'SBERT_BERTibaum': 'melll-uff/sbert_ptbr',
+    # 'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
+    # 'SBERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm-gpl-nli-sts-v1'
     }
 nsp_base_models = {
-    'BERT': 'neuralmind/bert-base-portuguese-cased',
-    'ITD_BERT': 'melll-uff/itd_bert',
-    'BERTikal': 'felipemaiapolo/legalnlp-bert',
+    # 'BERT': 'neuralmind/bert-base-portuguese-cased',
+    # 'ITD_BERT': 'melll-uff/itd_bert',
+    # 'BERTikal': 'felipemaiapolo/legalnlp-bert',
     'Legal_BERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm',
-    'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
-    'Longformer': 'melll-uff/longformer',
-    'ITD_Longformer': 'melll-uff/itd_longformer'
+    # 'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
+    # 'Longformer': 'melll-uff/longformer',
+    # 'ITD_Longformer': 'melll-uff/itd_longformer'
     }
 train_params = {'n_epochs': 1,
                 # 'train_batch_size': 4
@@ -58,11 +57,11 @@ train_params = {'n_epochs': 1,
 
 strategies = [
     "RandomSampling",
-    "LeastConfidence",
-    "MarginSampling",
-    "EntropySampling",
-    "KMeansSampling",
-    "KCenterGreedy",
+    # "LeastConfidence",
+    # "MarginSampling",
+    # "EntropySampling",
+    # "KMeansSampling",
+    # "KCenterGreedy",
     # "LeastConfidenceDropout", #<= TODO
     # "MarginSamplingDropout", #<= TODO
     # "EntropySamplingDropout", #<= TODO

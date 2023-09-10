@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertForNextSentencePrediction
+from transformers import TrainingArguments, Trainer, logging
 
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -17,6 +18,7 @@ from sentence_transformers.cross_encoder.evaluation import CESoftmaxAccuracyEval
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
+logging.set_verbosity_error()
 
 class Net:
     def __init__(self, net, params, device, model_path='models/bert-base-cased-pt-br'):
@@ -215,8 +217,8 @@ class SBERT_CrossEncoder():
 class SBERTCrossEncoderFinetune():
     PREDICT_BATCH_SIZE = 16
 
-    def __init__(self, device='cpu'):
-        self.model = self.build_model('models/bert-base-cased-pt-br', device)
+    def __init__(self, model_path, device='cpu'):
+        self.model = self.build_model(model_path, device)
 
     def predict(self, data):
         return self.model.predict(self.predict_data(data), apply_softmax=True,
@@ -300,26 +302,46 @@ class BertForNSP():
         _, probs = self.predict(data, output_probs=True)
         return probs
 
+    # def train(self, data, options):
+    #     train_dataloader = self.convert_data_to_train(data)
+    #     self.model.train()
+    #     optim = torch.optim.AdamW(self.model.parameters(), lr=5e-6)
+    #     for epoch in range(options["n_epochs"]):
+    #         # setup loop with TQDM and dataloader
+    #         loop = tqdm(train_dataloader, leave=True)
+    #         for batch in loop:
+    #             # initialize calculated gradients (from prev step)
+    #             optim.zero_grad()
+    #             outputs = self.predict_outputs(batch, to_train=True)
+    #             # extract loss
+    #             loss = outputs.loss
+    #             # calculate loss for every parameter that needs grad update
+    #             loss.backward()
+    #             # update parameters
+    #             optim.step()
+    #             # print relevant info to progress bar
+    #             loop.set_description(f'Epoch {epoch}')
+    #             loop.set_postfix(loss=loss.item())
+
     def train(self, data, options):
         train_dataloader = self.convert_data_to_train(data)
-        self.model.train()
-        optim = torch.optim.AdamW(self.model.parameters(), lr=5e-6)
-        for epoch in range(options["n_epochs"]):
-            # setup loop with TQDM and dataloader
-            loop = tqdm(train_dataloader, leave=True)
-            for batch in loop:
-                # initialize calculated gradients (from prev step)
-                optim.zero_grad()
-                outputs = self.predict_outputs(batch, to_train=True)
-                # extract loss
-                loss = outputs.loss
-                # calculate loss for every parameter that needs grad update
-                loss.backward()
-                # update parameters
-                optim.step()
-                # print relevant info to progress bar
-                loop.set_description(f'Epoch {epoch}')
-                loop.set_postfix(loss=loss.item())
+        default_args = {
+            "output_dir": "tmp",
+            "evaluation_strategy": "steps",
+            "num_train_epochs": options["n_epochs"],
+            "log_level": "error",
+            "report_to": "none",
+        }
+        training_args = TrainingArguments(per_device_train_batch_size=1,
+                                          gradient_accumulation_steps=options["train_batch_size"],
+                                          gradient_checkpointing=True,
+                                          fp16=torch.cuda.is_available(),
+                                          **default_args)
+
+        trainer = Trainer(model=self.model, args=training_args, train_dataset=train_dataloader.dataset)
+        result = trainer.train()
+        print(f"Time: {result.metrics['train_runtime']:.2f}")
+        print(f"Samples/second: {result.metrics['train_samples_per_second']:.2f}")
 
     def convert_data_to_train(self, data):
         X = np.array(list(map(lambda x: x.texts, data)))
