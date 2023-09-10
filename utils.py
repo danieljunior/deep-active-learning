@@ -2,9 +2,8 @@ from torchvision import transforms
 from handlers import MNIST_Handler, SVHN_Handler, CIFAR10_Handler, STS_Handler
 from custom_data import get_MNIST, get_FashionMNIST, get_SVHN, get_CIFAR10, get_STJ_STS, \
     get_STJ_STS_Classification, get_STS_Classification
-from nets import Net, MNIST_Net, SVHN_Net, CIFAR10_Net, SBERT_Net, SBERT_CrossEncoder, \
-    SBERTCrossEncoderFinetune
-from custom_nets import BertForNSP
+from nets import Net, MNIST_Net, SVHN_Net, CIFAR10_Net
+from custom_nets import BertForNSP, SBERT_Net, SBERT_CrossEncoder, SBERTCrossEncoderFinetune
 from custom_nets import Net as CustomNet
 from query_strategies import RandomSampling, LeastConfidence, MarginSampling, EntropySampling, \
     LeastConfidenceDropout, MarginSamplingDropout, EntropySamplingDropout, \
@@ -77,7 +76,7 @@ def get_dataset(name, sample=10, seed=42):
     elif name == 'STS_Classification':
         return get_STJ_STS_Classification(get_handler(name))
     elif name in ['SBERTCrossEncoderFinetune', 'BertClassification']:
-            return get_STS_Classification(get_handler(name), sample, seed)
+        return get_STS_Classification(get_handler(name), sample, seed)
     else:
         raise NotImplementedError
 
