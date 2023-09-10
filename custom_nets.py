@@ -1,4 +1,6 @@
 import math
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,14 +8,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertForNextSentencePrediction
-
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
-
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CESoftmaxAccuracyEvaluator
-
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
@@ -215,8 +214,8 @@ class SBERT_CrossEncoder():
 class SBERTCrossEncoderFinetune():
     PREDICT_BATCH_SIZE = 16
 
-    def __init__(self, device='cpu'):
-        self.model = self.build_model('models/bert-base-cased-pt-br', device)
+    def __init__(self, model_path, device='cpu'):
+        self.model = self.build_model(model_path, device)
 
     def predict(self, data):
         return self.model.predict(self.predict_data(data), apply_softmax=True,
@@ -255,6 +254,9 @@ class SBERTCrossEncoderFinetune():
     def build_model(self, base_model_path, device='cpu'):
         return CrossEncoder(base_model_path, num_labels=2, max_length=512, device=device)
 
+    def save(self, output_path):
+        os.makedirs(output_path, exist_ok=True)
+        self.model.save(output_path)
 
 class BertForNSP():
     def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
