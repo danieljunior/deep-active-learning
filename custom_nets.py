@@ -216,6 +216,7 @@ class SBERTCrossEncoderFinetune:
 class BertForNSP:
     def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.max_length = 4096 if 'longformer' in model_path else 512
         self.tokenizer = BertTokenizer.from_pretrained(model_path)
         self.model = BertForNextSentencePrediction.from_pretrained(model_path)
         self.model.to(self.device)
@@ -281,7 +282,7 @@ class BertForNSP:
         y = np.fromiter(map(lambda x: x.label, data), dtype=int).tolist()
 
         inputs = self.tokenizer(X[:, 0].tolist(), X[:, 1].tolist(),
-                                return_tensors='pt', max_length=512, truncation=True, padding='max_length')
+                                return_tensors='pt', max_length=self.max_length, truncation=True, padding='max_length')
         inputs['labels'] = inputs['labels'] = torch.LongTensor([y]).T
         dataset = self.STSDataset(inputs)
         return torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
