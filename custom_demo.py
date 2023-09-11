@@ -45,15 +45,15 @@ nsp_base_models = {
     'BERT': 'neuralmind/bert-base-portuguese-cased',
     'ITD_BERT': 'melll-uff/itd_bert',
     'BERTikal': 'felipemaiapolo/legalnlp-bert',
-    # 'Legal_BERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm',
     'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
-    'Longformer': 'melll-uff/longformer',
-    'ITD_Longformer': 'melll-uff/itd_longformer'
+    # 'Legal_BERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm',
+    # 'Longformer': 'melll-uff/longformer',
+    # 'ITD_Longformer': 'melll-uff/itd_longformer'
     }
 train_params = {'n_epochs': 1,
                 # 'train_batch_size': 4,
-                'train_batch_size': 8,
-                # 'train_batch_size': 16
+                # 'train_batch_size': 8,
+                'train_batch_size': 16
                 }
 
 strategies = [
