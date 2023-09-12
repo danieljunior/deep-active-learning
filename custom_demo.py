@@ -59,8 +59,8 @@ nsp_base_models = {
     }
 train_params = {'n_epochs': 1,
                 # 'train_batch_size': 4,
-                'train_batch_size': 8,
-                # 'train_batch_size': 16
+                # 'train_batch_size': 8,
+                'train_batch_size': 16
                 }
 
 strategies = [
