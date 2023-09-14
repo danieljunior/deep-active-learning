@@ -346,7 +346,7 @@ class BertForNSP:
                 pooled_output = torch.cat(tuple([batch_output.hidden_states[i]
                                                  for i in [-4, -3, -2, -1]]),
                                           dim=-1)
-                outputs.append(pooled_output[:, 0, :])
+                outputs.append(pooled_output[:, 0, :].cpu())
         return torch.cat(outputs)
 
     def get_embedding_dim(self):
