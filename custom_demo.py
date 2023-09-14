@@ -5,7 +5,7 @@ from pprint import pprint
 import wandb
 
 from utils import get_dataset, get_net, get_strategy, get_params
-from custom_nets import Net as CustomNet, BertForNSP, SBERTCrossEncoderFinetune
+from custom_nets import Net as CustomNet, BertForNSP, SBERTCrossEncoderFinetune, SimCSECrossEncoderFinetune
 from custom_data import get_STS_data
 
 
@@ -28,38 +28,38 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
 # start experiment
-version = 'only_nsp_v0'
-datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
-samples = [640, 1280, 2560, 5120]
-n_init_labeleds = [16, 32, 64, 128]
-n_queries = [8, 16, 32, 64]
-n_round = 5
+# version = 'only_nsp_v0'
+# datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
+# samples = [640, 1280, 2560, 5120]
+# n_init_labeleds = [16, 32, 64, 128]
+# n_queries = [8, 16, 32, 64]
+# n_round = 5
 
-# version = 'desenv_vx'
-# datasets = ['local_stj']
-# samples = [128]
-# n_init_labeleds = [8]
-# n_queries = [8]
-# n_round = 2
+version = 'desenv_vx'
+datasets = ['local_stj']
+samples = [128]
+n_init_labeleds = [8]
+n_queries = [8]
+n_round = 2
 
 sbert_base_models = {
     # 'SBERT_Local_BERTibaum': 'melll-uff/sbert_ptbr',
     # 'SBERT_Legal_BERTimbau': 'rufimelo/Legal-BERTimbau-sts-base-ma-v2',
     # 'SBERT_Paraphrase_Multilingual': 'sentence-transformers/paraphrase-multilingual-mpnet-base-v2',
-    # 'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara', #TODO preciso entender como fazer o finetuning
+    'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
     # 'SBERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm-gpl-nli-sts-v1' #Estoura memoria
 }
 nsp_base_models = {
-    'BERT': 'neuralmind/bert-base-portuguese-cased',
-    'ITD_BERT': 'melll-uff/itd_bert',
-    'BERTikal': 'felipemaiapolo/legalnlp-bert',
-    'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
+    # 'BERT': 'neuralmind/bert-base-portuguese-cased',
+    # 'ITD_BERT': 'melll-uff/itd_bert',
+    # 'BERTikal': 'felipemaiapolo/legalnlp-bert',
+    # 'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
     # 'Legal_BERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm', #Estoura memoria
     # 'Longformer': 'melll-uff/longformer', #Estoura memoria
     # 'ITD_Longformer': 'melll-uff/itd_longformer' #Estoura memoria
 }
 train_params = {'n_epochs': 1,
-                'train_batch_size': 32
+                'train_batch_size': 4
                 }
 
 strategies = [
@@ -84,7 +84,12 @@ for dataset_name in datasets:
             print("============================>RAW BASELINE: " + model_name + "<=============================\n")
             with ClearCache():
                 dataset = get_STS_data(dataset_name, sample, seed)  # load dataset
-                net = SBERTCrossEncoderFinetune(model_path, device)  # load network
+
+                if model_name == 'SimCSE_LegalBERTPT-br':
+                    net = SimCSECrossEncoderFinetune(model_path, device)  # load network
+                else:
+                    net = SBERTCrossEncoderFinetune(model_path, device)  # load network
+
                 test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
 
                 config = {"train_config": train_params,
@@ -108,7 +113,8 @@ for dataset_name in datasets:
                     'test_accuracy': accuracy})
                 run.finish()
                 print("================================================================\n")
-                print("============================>TRAINED BASELINE: " + model_name + "<=============================\n")
+                print(
+                    "============================>TRAINED BASELINE: " + model_name + "<=============================\n")
 
                 if model_name != 'SBERT_STJ_IRIS':
                     config = {"train_config": train_params,

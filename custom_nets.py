@@ -20,6 +20,7 @@ from tqdm import tqdm
 
 logging.set_verbosity_error()
 
+
 class Net:
     def __init__(self, net, params, device, model_path='models/bert-base-cased-pt-br'):
         self.net = net(device, model_path)
@@ -64,6 +65,7 @@ class Net:
 
     def get_embeddings(self, data):
         return self.net.get_embeddings(data)
+
 
 class SBERT_Net:
     def __init__(self, device='cpu'):
@@ -213,6 +215,51 @@ class SBERTCrossEncoderFinetune:
         return CrossEncoder(base_model_path, num_labels=2, max_length=512, device=device)
 
 
+class SimCSECrossEncoderFinetune:
+    PREDICT_BATCH_SIZE = 16
+
+    def __init__(self, model_path, device='cpu'):
+        word_embedding_model = models.Transformer(model_path, max_seq_length=512)
+        pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
+        self.model = SentenceTransformer(modules=[word_embedding_model, pooling_model]).to(device)
+
+    def predict(self, data):
+        embeddings_A = self.model.encode([x.texts[0] for x in data], convert_to_tensor=True,
+                                         show_progress_bar=False)
+        embeddings_B = self.model.encode([x.texts[1] for x in data], convert_to_tensor=True,
+                                         show_progress_bar=False)
+
+        # Compute cosine-similarits
+        cosine_scores = util.pytorch_cos_sim(embeddings_A, embeddings_B)
+        resp = np.array([cosine_scores[i][i] for i, s in enumerate(data)])
+        return torch.from_numpy(np.array([round(e) for e in resp]))
+
+    def predict_prob(self, data):
+        raise 'Not supported'
+
+    def predict_data(self, data):
+        return np.array([x.texts for x in data])
+
+    # https://www.sbert.net/examples/unsupervised_learning/SimCSE/README.html
+    def train(self, data, options):
+        train_data = self.convert_data(data)
+
+        # DataLoader to batch your data
+        train_dataloader = DataLoader(train_data, batch_size=options["train_batch_size"], shuffle=True)
+
+        # Use the denoising auto-encoder loss
+        train_loss = losses.MultipleNegativesRankingLoss(self.model)
+
+        # Call the fit method
+        self.model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            epochs=options["n_epochs"],
+            show_progress_bar=True
+        )
+
+    def convert_data(self, data):
+        return [InputExample(texts=[s, s]) for s in np.unique(np.array([pair.texts for pair in data]).flatten())]
+
 class BertForNSP:
     def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -258,7 +305,7 @@ class BertForNSP:
         return probs
 
     def train(self, data, options):
-        train_dataloader = self.convert_data_to_train(data)
+        train_dataloader = self.convert_data_to_train(data, options)
         default_args = {
             "output_dir": "tmp",
             "evaluation_strategy": "steps",
@@ -277,15 +324,16 @@ class BertForNSP:
         print(f"Time: {result.metrics['train_runtime']:.2f}")
         print(f"Samples/second: {result.metrics['train_samples_per_second']:.2f}")
 
-    def convert_data_to_train(self, data):
+    def convert_data_to_train(self, data, options={"train_batch_size": 4}):
         X = np.array(list(map(lambda x: x.texts, data)))
         y = np.fromiter(map(lambda x: x.label, data), dtype=int).tolist()
 
         inputs = self.tokenizer(X[:, 0].tolist(), X[:, 1].tolist(),
-                                return_tensors='pt', max_length=self.max_length, truncation=True, padding='max_length')
+                                return_tensors='pt', max_length=self.max_length, truncation=True,
+                                padding='max_length')
         inputs['labels'] = inputs['labels'] = torch.LongTensor([y]).T
         dataset = self.STSDataset(inputs)
-        return torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
+        return torch.utils.data.DataLoader(dataset, batch_size=options["train_batch_size"], shuffle=True)
 
     def get_embeddings(self, data):
         dataloader = self.convert_data_to_train(data)
