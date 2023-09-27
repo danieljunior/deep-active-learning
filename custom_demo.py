@@ -59,7 +59,7 @@ nsp_base_models = {
     # 'ITD_Longformer': 'melll-uff/itd_longformer' #Estoura memoria
 }
 train_params = {'n_epochs': 1,
-                'train_batch_size': 4
+                'train_batch_size': 32
                 }
 
 strategies = [

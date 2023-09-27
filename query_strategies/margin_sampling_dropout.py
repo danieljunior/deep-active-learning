@@ -8,7 +8,7 @@ class MarginSamplingDropout(Strategy):
 
     def query(self, n):
         unlabeled_idxs, unlabeled_data = self.dataset.get_unlabeled_data()
-        probs = self.predict_prob_dropout(unlabeled_data, n_drop=self.n_drop)
+        probs = self.predict_prob_dropout(unlabeled_data, n_drop=self.n_drop).cpu()
         probs_sorted, idxs = probs.sort(descending=True)
         uncertainties = probs_sorted[:, 0] - probs_sorted[:,1]
         return unlabeled_idxs[uncertainties.sort()[1][:n]]

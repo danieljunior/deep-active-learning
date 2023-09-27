@@ -311,7 +311,7 @@ class BertForNSP:
 
     #https://stackoverflow.com/a/71827094
     def predict_prob_dropout(self, data, n_drop=10):
-        probs = torch.zeros([len(data), 2])
+        probs = torch.zeros([len(data), 2]).to(self.device)
         for i in range(n_drop):
             with torch.no_grad():
                 _, probs_ = self.predict(data, output_probs=True)

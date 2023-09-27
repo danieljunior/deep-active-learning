@@ -8,6 +8,6 @@ class LeastConfidenceDropout(Strategy):
 
     def query(self, n):
         unlabeled_idxs, unlabeled_data = self.dataset.get_unlabeled_data()
-        probs = self.predict_prob_dropout(unlabeled_data, n_drop=self.n_drop)
+        probs = self.predict_prob_dropout(unlabeled_data, n_drop=self.n_drop).cpu()
         uncertainties = probs.max(1)[0]
         return unlabeled_idxs[uncertainties.sort()[1][:n]]
