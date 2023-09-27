@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from transformers import BertTokenizer, BertForNextSentencePrediction
+from transformers import BertTokenizer, BertForNextSentencePrediction, AutoConfig
 from transformers import TrainingArguments, Trainer, logging
 
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
@@ -22,8 +22,8 @@ logging.set_verbosity_error()
 
 
 class Net:
-    def __init__(self, net, params, device, model_path='models/bert-base-cased-pt-br'):
-        self.net = net(device, model_path)
+    def __init__(self, net, params, device, model_path='models/bert-base-cased-pt-br', with_dropout=False):
+        self.net = net(device, model_path, with_dropout)
         self.params = params
         self.device = device
 
@@ -37,18 +37,7 @@ class Net:
         return self.net.predict_prob(data)
 
     def predict_prob_dropout(self, data, n_drop=10):
-        self.clf.train()
-        probs = torch.zeros([len(data), len(np.unique(data.Y))])
-        loader = DataLoader(data, shuffle=False, **self.params['test_args'])
-        for i in range(n_drop):
-            with torch.no_grad():
-                for x, y, idxs in loader:
-                    x, y = x.to(self.device), y.to(self.device)
-                    out, e1 = self.clf(x)
-                    prob = F.softmax(out, dim=1)
-                    probs[idxs] += prob.cpu()
-        probs /= n_drop
-        return probs
+        return self.net.predict_prob_dropout(data, n_drop)
 
     def predict_prob_dropout_split(self, data, n_drop=10):
         self.clf.train()
@@ -260,12 +249,23 @@ class SimCSECrossEncoderFinetune:
     def convert_data(self, data):
         return [InputExample(texts=[s, s]) for s in np.unique(np.array([pair.texts for pair in data]).flatten())]
 
+
 class BertForNSP:
-    def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br'):
+    def __init__(self, device='cpu', model_path='models/bert-base-cased-pt-br', with_dropout=False):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.max_length = 4096 if 'longformer' in model_path else 512
         self.tokenizer = BertTokenizer.from_pretrained(model_path)
-        self.model = BertForNextSentencePrediction.from_pretrained(model_path)
+
+        if with_dropout:
+            configuration = AutoConfig.from_pretrained(model_path)
+            configuration.hidden_dropout_prob = 0.5
+            configuration.attention_probs_dropout_prob = 0.5
+            self.model = BertForNextSentencePrediction.from_pretrained(pretrained_model_name_or_path=model_path,
+                                                   config=configuration)
+
+        else:
+            self.model = BertForNextSentencePrediction.from_pretrained(model_path)
+
         self.model.to(self.device)
 
     def predict_outputs(self, batch, to_train=False):
@@ -281,14 +281,19 @@ class BertForNSP:
             return self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                               output_hidden_states=True)
 
-    def predict(self, data, output_probs=False):
-        test_loader = self.convert_data_to_train(data)
+    def predict(self, data, output_probs=False, with_dropout=False):
+        test_loader = self.convert_data_to_train(data, shuffle=not with_dropout)
         loop = tqdm(test_loader, leave=True)
 
         true_labels = []
         predicted_labels = []
         predicted_probs = []
-        self.model.eval()
+
+        if with_dropout:
+            self.model.train()
+        else:
+            self.model.eval()
+
         for batch in loop:
             outputs = self.predict_outputs(batch)
             true_labels.append(batch['labels'].T[0])
@@ -302,6 +307,16 @@ class BertForNSP:
 
     def predict_prob(self, data):
         _, probs = self.predict(data, output_probs=True)
+        return probs
+
+    #https://stackoverflow.com/a/71827094
+    def predict_prob_dropout(self, data, n_drop=10):
+        probs = torch.zeros([len(data), 2])
+        for i in range(n_drop):
+            with torch.no_grad():
+                _, probs_ = self.predict(data, output_probs=True)
+                probs += probs_
+        probs /= n_drop
         return probs
 
     def train(self, data, options):
@@ -324,7 +339,7 @@ class BertForNSP:
         print(f"Time: {result.metrics['train_runtime']:.2f}")
         print(f"Samples/second: {result.metrics['train_samples_per_second']:.2f}")
 
-    def convert_data_to_train(self, data, options={"train_batch_size": 4}):
+    def convert_data_to_train(self, data, options={"train_batch_size": 4}, shuffle=True):
         X = np.array(list(map(lambda x: x.texts, data)))
         y = np.fromiter(map(lambda x: x.label, data), dtype=int).tolist()
 
@@ -333,7 +348,7 @@ class BertForNSP:
                                 padding='max_length')
         inputs['labels'] = inputs['labels'] = torch.LongTensor([y]).T
         dataset = self.STSDataset(inputs)
-        return torch.utils.data.DataLoader(dataset, batch_size=options["train_batch_size"], shuffle=True)
+        return torch.utils.data.DataLoader(dataset, batch_size=options["train_batch_size"], shuffle=shuffle)
 
     def get_embeddings(self, data):
         dataloader = self.convert_data_to_train(data)

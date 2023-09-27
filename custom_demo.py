@@ -46,11 +46,11 @@ sbert_base_models = {
     # 'SBERT_Local_BERTibaum': 'melll-uff/sbert_ptbr',
     # 'SBERT_Legal_BERTimbau': 'rufimelo/Legal-BERTimbau-sts-base-ma-v2',
     # 'SBERT_Paraphrase_Multilingual': 'sentence-transformers/paraphrase-multilingual-mpnet-base-v2',
-    'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
+    # 'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
     # 'SBERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm-gpl-nli-sts-v1' #Estoura memoria
 }
 nsp_base_models = {
-    # 'BERT': 'neuralmind/bert-base-portuguese-cased',
+    'BERT': 'neuralmind/bert-base-portuguese-cased',
     # 'ITD_BERT': 'melll-uff/itd_bert',
     # 'BERTikal': 'felipemaiapolo/legalnlp-bert',
     # 'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
@@ -63,13 +63,13 @@ train_params = {'n_epochs': 1,
                 }
 
 strategies = [
-    "RandomSampling",
-    "LeastConfidence",
-    "MarginSampling",
-    "EntropySampling",
-    "KMeansSampling",
-    "KCenterGreedy",
-    # "LeastConfidenceDropout", #<= TODO
+    # "RandomSampling",
+    # "LeastConfidence",
+    # "MarginSampling",
+    # "EntropySampling",
+    # "KMeansSampling",
+    # "KCenterGreedy",
+    "LeastConfidenceDropout", #<= TODO
     # "MarginSamplingDropout", #<= TODO
     # "EntropySamplingDropout", #<= TODO
     # "BALDDropout", #<= TODO
@@ -162,7 +162,8 @@ for dataset_name in datasets:
                             }
 
                             dataset = get_STS_data(dataset_name, sample, seed)  # load dataset
-                            net = CustomNet(BertForNSP, train_params, device, model_path)
+                            with_dropout = "Dropout" in strategy_name
+                            net = CustomNet(BertForNSP, train_params, device, model_path, with_dropout)
                             test_data = np.fromiter(map(lambda x: x.label, dataset.get_test_data()), dtype=int)
 
                             strategy = get_strategy(strategy_name)(dataset, net)  # load strategy
