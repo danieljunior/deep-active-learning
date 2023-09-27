@@ -28,19 +28,19 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
 # start experiment
-# version = 'only_nsp_v0'
-# datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
-# samples = [640, 1280, 2560, 5120]
-# n_init_labeleds = [16, 32, 64, 128]
-# n_queries = [8, 16, 32, 64]
-# n_round = 5
+version = 'only_nsp_v0'
+datasets = ['local_stj', ] #'iris_stj_local_stj', 'iris_stj'
+samples = [640, 1280, 2560, 5120]
+n_init_labeleds = [16, 32, 64, 128]
+n_queries = [8, 16, 32, 64]
+n_round = 5
 
-version = 'desenv_vx'
-datasets = ['local_stj']
-samples = [128]
-n_init_labeleds = [8]
-n_queries = [8]
-n_round = 2
+# version = 'desenv_vx'
+# datasets = ['local_stj']
+# samples = [128]
+# n_init_labeleds = [8]
+# n_queries = [8]
+# n_round = 2
 
 sbert_base_models = {
     # 'SBERT_Local_BERTibaum': 'melll-uff/sbert_ptbr',
@@ -51,9 +51,9 @@ sbert_base_models = {
 }
 nsp_base_models = {
     'BERT': 'neuralmind/bert-base-portuguese-cased',
-    # 'ITD_BERT': 'melll-uff/itd_bert',
-    # 'BERTikal': 'felipemaiapolo/legalnlp-bert',
-    # 'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
+    'ITD_BERT': 'melll-uff/itd_bert',
+    'BERTikal': 'felipemaiapolo/legalnlp-bert',
+    'Legal_BERT_STF': 'dominguesm/legal-bert-base-cased-ptbr',
     # 'Legal_BERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm', #Estoura memoria
     # 'Longformer': 'melll-uff/longformer', #Estoura memoria
     # 'ITD_Longformer': 'melll-uff/itd_longformer' #Estoura memoria
@@ -70,8 +70,8 @@ strategies = [
     # "KMeansSampling",
     # "KCenterGreedy",
     "LeastConfidenceDropout", #<= TODO
-    # "MarginSamplingDropout", #<= TODO
-    # "EntropySamplingDropout", #<= TODO
+     "MarginSamplingDropout", #<= TODO
+     "EntropySamplingDropout", #<= TODO
     # "BALDDropout", #<= TODO
     # "AdversarialBIM", #<= TODO
     # "AdversarialDeepFool" #<= TODO
