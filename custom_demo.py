@@ -29,7 +29,7 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 # start experiment
 version = 'only_nsp_v0'
-datasets = ['local_stj', ] #'iris_stj_local_stj', 'iris_stj'
+datasets = ['local_stj', 'iris_stj_local_stj', 'iris_stj']
 samples = [640, 1280, 2560, 5120]
 n_init_labeleds = [16, 32, 64, 128]
 n_queries = [8, 16, 32, 64]
@@ -43,10 +43,10 @@ n_round = 5
 # n_round = 2
 
 sbert_base_models = {
-    # 'SBERT_Local_BERTibaum': 'melll-uff/sbert_ptbr',
-    # 'SBERT_Legal_BERTimbau': 'rufimelo/Legal-BERTimbau-sts-base-ma-v2',
-    # 'SBERT_Paraphrase_Multilingual': 'sentence-transformers/paraphrase-multilingual-mpnet-base-v2',
-    # 'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
+    'SBERT_Local_BERTibaum': 'melll-uff/sbert_ptbr',
+    'SBERT_Legal_BERTimbau': 'rufimelo/Legal-BERTimbau-sts-base-ma-v2',
+    'SBERT_Paraphrase_Multilingual': 'sentence-transformers/paraphrase-multilingual-mpnet-base-v2',
+    'SimCSE_LegalBERTPT-br': 'DanielJunior/legal-bert-pt-br_ulysses-camara',
     # 'SBERT_STJ_IRIS': 'stjiris/bert-large-portuguese-cased-legal-mlm-gpl-nli-sts-v1' #Estoura memoria
 }
 nsp_base_models = {
@@ -59,23 +59,24 @@ nsp_base_models = {
     # 'ITD_Longformer': 'melll-uff/itd_longformer' #Estoura memoria
 }
 train_params = {'n_epochs': 1,
-                'train_batch_size': 32
+                'train_batch_size': 32 #4 para os baselines
                 }
 
 strategies = [
-    # "RandomSampling",
-    # "LeastConfidence",
-    # "MarginSampling",
-    # "EntropySampling",
-    # "KMeansSampling",
-    # "KCenterGreedy",
-    "LeastConfidenceDropout", #<= TODO
-     "MarginSamplingDropout", #<= TODO
-     "EntropySamplingDropout", #<= TODO
+    "RandomSampling",
+    "LeastConfidence",
+    "MarginSampling",
+    "EntropySampling",
+    "KMeansSampling",
+    "KCenterGreedy",
+    "LeastConfidenceDropout",
+     "MarginSamplingDropout",
+     "EntropySamplingDropout",
     # "BALDDropout", #<= TODO
     # "AdversarialBIM", #<= TODO
     # "AdversarialDeepFool" #<= TODO
 ]
+
 for dataset_name in datasets:
     print("============================>DATASET: " + dataset_name.upper() + "<=============================\n")
     for sample in samples:
@@ -113,8 +114,7 @@ for dataset_name in datasets:
                     'test_accuracy': accuracy})
                 run.finish()
                 print("================================================================\n")
-                print(
-                    "============================>TRAINED BASELINE: " + model_name + "<=============================\n")
+                print("============================>TRAINED BASELINE: " + model_name + "<=============================\n")
 
                 if model_name != 'SBERT_STJ_IRIS':
                     config = {"train_config": train_params,

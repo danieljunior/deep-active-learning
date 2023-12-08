@@ -72,8 +72,12 @@ If you use our code in your research or applications, please consider citing our
 
 - `docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg WANDB_API_KEY=<API_KEY> --force-rm -t deepal .`
 - `docker run --rm --shm-size="2g" -v ${PWD}:/app -w /app -p 8888:8888 --name deepal -itd deepal bash`
-- `nvidia-docker run -it --rm --shm-size=20g --ulimit memlock=-1 -v ${PWD}:/app -w /app --name deepal -itd deepal bash`
+- `NV_GPU=5 nvidia-docker run -it --rm --shm-size=20g --ulimit memlock=-1 -v ${PWD}:/app -w /app --name deepal -itd deepal bash`
 - `docker exec -it deepal bash`
 
+### Run jupyter notebooks
+- `jupyter lab --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token='deepal' &`
+- Acessar: `http://localhost:8888/lab?token=deepal`
+
 ### Exportar env
-- `conda env export --from-history > new_environment.yml`
+- `conda env export --from-history > environment.yml`

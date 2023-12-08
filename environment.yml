@@ -29,6 +29,7 @@ dependencies:
   - jedi==0.18.1=py38h578d9bd_0
   - joblib==1.1.0=pyhd3eb1b0_0
   - jpeg==9d=h7f8727e_0
+  - jupyterlab
   - lame==3.100=h7b6447c_0
   - lcms2==2.12=h3be6417_0
   - ld_impl_linux-64==2.35.1=h7274673_9

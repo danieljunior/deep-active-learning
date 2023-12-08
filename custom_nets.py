@@ -219,7 +219,7 @@ class SimCSECrossEncoderFinetune:
                                          show_progress_bar=False)
 
         # Compute cosine-similarits
-        cosine_scores = util.pytorch_cos_sim(embeddings_A, embeddings_B)
+        cosine_scores = util.pytorch_cos_sim(embeddings_A, embeddings_B).cpu()
         resp = np.array([cosine_scores[i][i] for i, s in enumerate(data)])
         return torch.from_numpy(np.array([round(e) for e in resp]))
 
