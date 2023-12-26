@@ -80,6 +80,8 @@ strategies = [
 for dataset_name in datasets:
     print("============================>DATASET: " + dataset_name.upper() + "<=============================\n")
     for sample in samples:
+        if dataset_name in ['iris_stj_local_stj', 'iris_stj'] and sample > 1280:
+            continue
         ################################BASELINE#######################
         for model_name, model_path in sbert_base_models.items():
             print("============================>RAW BASELINE: " + model_name + "<=============================\n")
