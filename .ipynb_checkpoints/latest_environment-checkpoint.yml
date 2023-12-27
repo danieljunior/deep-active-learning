@@ -93,5 +93,5 @@ dependencies:
   - jupyterlab
   - seaborn
   - plotly=5.18.0
-  - jupyter-dash
+  - dash
 prefix: /opt/miniconda3/envs/deepal

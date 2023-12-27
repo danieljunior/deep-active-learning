@@ -1,6 +1,10 @@
 name: deepal
 channels:
+  - plotly
+  - pytorch
+  - conda-forge
   - defaults
+  - free
 dependencies:
   - _libgcc_mutex==0.1=main
   - _openmp_mutex==4.5=1_gnu
@@ -15,6 +19,7 @@ dependencies:
   - conda
   - conda-libmamba-solver
   - cudatoolkit==11.3.1=h2bc3f7f_2
+  - dash
   - decorator==5.1.0=pyhd8ed1ab_0
   - ffmpeg==4.3=hf484d3e_0
   - freetype==2.11.0=h70c0345_0
@@ -26,6 +31,7 @@ dependencies:
   - jedi==0.18.1=py38h578d9bd_0
   - joblib==1.1.0=pyhd3eb1b0_0
   - jpeg==9d=h7f8727e_0
+  - jupyterlab
   - lame==3.100=h7b6447c_0
   - lcms2==2.12=h3be6417_0
   - ld_impl_linux-64==2.35.1=h7274673_9
@@ -63,6 +69,7 @@ dependencies:
   - pickleshare==0.7.5=py_1003
   - pillow==8.4.0=py38h5aabda8_0
   - pip==21.2.4=py38h06a4308_0
+  - plotly=5.18.0
   - prompt-toolkit==3.0.22=pyha770c72_0
   - ptyprocess==0.7.0=pyhd3deb0d_0
   - pygments==2.10.0=pyhd8ed1ab_0
@@ -73,6 +80,7 @@ dependencies:
   - readline==8.1=h27cfd23_0
   - scikit-learn==1.0.1=py38h51133e4_0
   - scipy==1.7.1=py38h292c36d_2
+  - seaborn
   - sentence-transformers
   - setuptools==58.0.4=py38h06a4308_0
   - six==1.16.0=pyhd3eb1b0_0
@@ -84,14 +92,10 @@ dependencies:
   - tqdm==4.62.3=pyhd8ed1ab_0
   - traitlets==5.1.1=pyhd8ed1ab_0
   - typing_extensions==3.10.0.2=pyh06a4308_0
-  - wandb
   - wcwidth==0.2.5=pyh9f0ad1d_2
   - wheel==0.37.0=pyhd3eb1b0_1
   - xz==5.2.5=h7b6447c_0
   - zlib==1.2.11=h7b6447c_3
   - zstd==1.4.9=haebb681_0
-  - jupyterlab
-  - seaborn
-  - plotly=5.18.0
-  - jupyter-dash
-prefix: /opt/miniconda3/envs/deepal
+  - wandb
+prefix: /opt/conda/envs/deepal
