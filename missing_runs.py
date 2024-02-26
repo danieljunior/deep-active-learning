@@ -163,63 +163,63 @@ for dataset_name in datasets:
                                 print()
 
                                 # round 0 accuracy ### DAQUI
-                                # print("Round 0")
-                                # _, initial_labeled_data = dataset.get_labeled_data()
-                                # initial_labeled_data = np.fromiter(map(lambda x: x.label, initial_labeled_data), dtype=int)
-                                # print(f"Initial labeled data: \t{initial_labeled_data}")
-                                #
-                                # config["n_initial_unlabeled_pool"] = dataset.n_pool - n_init_labeled
-                                # config["initial_labeled_data"] = initial_labeled_data,
-                                # config['test_data'] = test_data
-                                # config['strategy'] = strategy_name
-                                #
-                                # run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
-                                # wandb.run.name = model_name + ' -> ' + strategy_name
-                                #
-                                # strategy.train()
-                                # preds = strategy.predict(dataset.get_test_data()).cpu()
-                                # accuracy = dataset.cal_test_acc(preds)
-                                # print(f"Round 0 testing accuracy: {accuracy}")
-                                # print(f"Test data: \t{test_data}")
-                                # print(f"Predictions: \t{preds.numpy()}")
-                                #
-                                # wandb.log({
-                                #     "round": 0,
-                                #     "new_labeled_data": initial_labeled_data,
-                                #     "predictions": preds.numpy(),
-                                #     "test_accuracy": accuracy,
-                                #     "total_labeled_data": len(initial_labeled_data)})
-                                #
-                                # for rd in range(1, n_round + 1):
-                                #     print(f"\nRound {rd}")
-                                #
-                                #     # query
-                                #     query_idxs = strategy.query(n_query)
-                                #     strategy.update(query_idxs)
-                                #     _, new_labeled_data = dataset.get_query_data(query_idxs)
-                                #     _, labeled_data = dataset.get_labeled_data()
-                                #     new_labeled_data = np.fromiter(map(lambda x: x.label, new_labeled_data), dtype=int)
-                                #     print(f"New labeled data: \t{new_labeled_data}")
-                                #     # update labels
-                                #     # strategy.train()
-                                #     strategy.incremental_train(query_idxs)
-                                #
-                                #     # calculate accuracy
-                                #     preds = strategy.predict(dataset.get_test_data()).cpu()
-                                #     accuracy = dataset.cal_test_acc(preds)
-                                #
-                                #     print(f"Round {rd} testing accuracy: {accuracy}")
-                                #     print(f"Test data: \t{test_data}")
-                                #     print(f"Predictions: \t{preds.numpy()}")
-                                #
-                                #     wandb.log({
-                                #         "round": rd,
-                                #         "new_labeled_data": new_labeled_data,
-                                #         "predictions": preds.numpy(),
-                                #         "total_labeled_data": len(labeled_data),
-                                #         'test_accuracy': accuracy
-                                #     })
-                                # run.finish()
-                                # net = None
-                                # dataset = None
-                                # print("================================================================")
+                                print("Round 0")
+                                _, initial_labeled_data = dataset.get_labeled_data()
+                                initial_labeled_data = np.fromiter(map(lambda x: x.label, initial_labeled_data), dtype=int)
+                                print(f"Initial labeled data: \t{initial_labeled_data}")
+
+                                config["n_initial_unlabeled_pool"] = dataset.n_pool - n_init_labeled
+                                config["initial_labeled_data"] = initial_labeled_data,
+                                config['test_data'] = test_data
+                                config['strategy'] = strategy_name
+
+                                run = wandb.init(project="Legal DeepAL", reinit=True, config=config, tags=[version])
+                                wandb.run.name = model_name + ' -> ' + strategy_name
+
+                                strategy.train()
+                                preds = strategy.predict(dataset.get_test_data()).cpu()
+                                accuracy = dataset.cal_test_acc(preds)
+                                print(f"Round 0 testing accuracy: {accuracy}")
+                                print(f"Test data: \t{test_data}")
+                                print(f"Predictions: \t{preds.numpy()}")
+
+                                wandb.log({
+                                    "round": 0,
+                                    "new_labeled_data": initial_labeled_data,
+                                    "predictions": preds.numpy(),
+                                    "test_accuracy": accuracy,
+                                    "total_labeled_data": len(initial_labeled_data)})
+
+                                for rd in range(1, n_round + 1):
+                                    print(f"\nRound {rd}")
+
+                                    # query
+                                    query_idxs = strategy.query(n_query)
+                                    strategy.update(query_idxs)
+                                    _, new_labeled_data = dataset.get_query_data(query_idxs)
+                                    _, labeled_data = dataset.get_labeled_data()
+                                    new_labeled_data = np.fromiter(map(lambda x: x.label, new_labeled_data), dtype=int)
+                                    print(f"New labeled data: \t{new_labeled_data}")
+                                    # update labels
+                                    # strategy.train()
+                                    strategy.incremental_train(query_idxs)
+
+                                    # calculate accuracy
+                                    preds = strategy.predict(dataset.get_test_data()).cpu()
+                                    accuracy = dataset.cal_test_acc(preds)
+
+                                    print(f"Round {rd} testing accuracy: {accuracy}")
+                                    print(f"Test data: \t{test_data}")
+                                    print(f"Predictions: \t{preds.numpy()}")
+
+                                    wandb.log({
+                                        "round": rd,
+                                        "new_labeled_data": new_labeled_data,
+                                        "predictions": preds.numpy(),
+                                        "total_labeled_data": len(labeled_data),
+                                        'test_accuracy': accuracy
+                                    })
+                                run.finish()
+                                net = None
+                                dataset = None
+                                print("================================================================")
