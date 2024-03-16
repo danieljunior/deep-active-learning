@@ -1,8 +1,8 @@
 from base import Base
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Text
 from pgvector.sqlalchemy import Vector
+from typing import List
 
 class Document(Base):
     __tablename__ = "documents"
@@ -11,7 +11,7 @@ class Document(Base):
     text: Mapped[str] = mapped_column(Text)
     embedding = mapped_column(Vector(3))
 
-    # addresses: Mapped[List["Address"]] = relationship(back_populates="user")
+    # pairs: Mapped[List["Pair"]] = relationship(back_populates="document")
 
     def __repr__(self) -> str:
         return f"Document(id={self.id!r}, text={self.text!r})"

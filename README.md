@@ -79,7 +79,7 @@ If you use our code in your research or applications, please consider citing our
 
 ### Docker-compose
 - `USER_ID=$(id -u) GROUP_ID=$(id -g) docker-compose build`
-- `USER_ID=$(id -u) GROUP_ID=$(id -g) docker-compose up
+- `USER_ID=$(id -u) GROUP_ID=$(id -g) docker-compose up`
 
 ## Run jupyter notebooks
 - `jupyter lab --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token='deepal' &`
@@ -87,3 +87,6 @@ If you use our code in your research or applications, please consider citing our
 
 ### Exportar env
 - `conda env export --from-history > environment.yml`
+
+### Postgres
+- After initializing containers with docker-compose, run `python db/connection.py` in the experiment container

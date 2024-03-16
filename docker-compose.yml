@@ -3,14 +3,14 @@
 version: "3"
 services:
   experiment:
-    image: danielpsjr/legal_sts:latest
+    image: danielpsjr/deepal:latest
     build:
       context: ./
       dockerfile: Dockerfile
       args:
         - USER_ID=${USER_ID}
         - GROUP_ID=${GROUP_ID}
-    volumes: #comentar quando for rodar o build
+    volumes:
       - ${PWD}:/app
     ports:
       - "8888:8888"
@@ -19,7 +19,11 @@ services:
       - db
     links:
       - db:db
+#    entrypoint: [ "/bin/sh","-c" ]
     command: tail -f /dev/null
+#    - |
+#      python db/connection.py
+#      tail -f /dev/null
 
   db:
     hostname: 127.0.0.1
@@ -32,4 +36,4 @@ services:
       - POSTGRES_USER=provenance
       - POSTGRES_PASSWORD=Provenance
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
