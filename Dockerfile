@@ -8,7 +8,7 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 RUN apt-get update --fix-missing && \
     apt-get install -y wget bzip2 ca-certificates \
     libglib2.0-0 libxext6 libsm6 libxrender1 \
-    git gcc nano unzip
+    git gcc nano unzip libpq-dev python3-dev
 
 ENV PATH="/opt/miniconda3/bin:${PATH}"
 ARG PATH="/opt/miniconda3/bin:${PATH}"
@@ -19,7 +19,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86
     && echo "Running $(conda --version)"
 
 RUN mkdir -p /app
-COPY . /app
+COPY environment.yml /app/environment.yml
 WORKDIR /app
 
 RUN addgroup --gid $GROUP_ID user && adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user

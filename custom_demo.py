@@ -70,8 +70,8 @@ strategies = [
     "KMeansSampling",
     "KCenterGreedy",
     "LeastConfidenceDropout",
-     "MarginSamplingDropout",
-     "EntropySamplingDropout",
+    "MarginSamplingDropout",
+    "EntropySamplingDropout",
     # "BALDDropout", #<= TODO
     # "AdversarialBIM", #<= TODO
     # "AdversarialDeepFool" #<= TODO

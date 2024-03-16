@@ -1,0 +1,35 @@
+# Run this command to start the database:
+# docker-compose up --build
+version: "3"
+services:
+  experiment:
+    image: danielpsjr/legal_sts:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        - USER_ID=${USER_ID}
+        - GROUP_ID=${GROUP_ID}
+    volumes: #comentar quando for rodar o build
+      - ${PWD}:/app
+    ports:
+      - "8888:8888"
+      - "8049:8049"
+    depends_on:
+      - db
+    links:
+      - db:db
+    command: tail -f /dev/null
+
+  db:
+    hostname: 127.0.0.1
+    image: ankane/pgvector
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      - POSTGRES_DB=al_provenance
+      - POSTGRES_USER=provenance
+      - POSTGRES_PASSWORD=Provenance
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql

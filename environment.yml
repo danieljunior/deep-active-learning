@@ -38,14 +38,14 @@ dependencies:
   - lcms2==2.12=h3be6417_0
   - ld_impl_linux-64==2.35.1=h7274673_9
   - libffi==3.3=he6710b0_2
-  - libgcc-ng==9.3.0=h5101ec6_17
+  - libgcc-ng
   - libgfortran-ng==7.5.0=ha8ba4b0_17
   - libgfortran4==7.5.0=ha8ba4b0_17
-  - libgomp==9.3.0=h5101ec6_17
+  - libgomp
   - libiconv==1.15=h63c8f33_5
   - libidn2==2.3.2=h7f8727e_0
   - libpng==1.6.37=hbc83047_0
-  - libstdcxx-ng==9.3.0=hd4cf53a_17
+  - libstdcxx-ng
   - libtasn1==4.16.0=h27cfd23_0
   - libtiff==4.2.0=h85742a9_0
   - libunistring==0.9.10=h27cfd23_0
@@ -71,6 +71,8 @@ dependencies:
   - pickleshare==0.7.5=py_1003
   - pillow==8.4.0=py38h5aabda8_0
   - pip==21.2.4=py38h06a4308_0
+  - psycopg2
+  - pgvector
   - plotly=5.18.0
   - prompt-toolkit==3.0.22=pyha770c72_0
   - ptyprocess==0.7.0=pyhd3deb0d_0
@@ -87,6 +89,7 @@ dependencies:
   - setuptools==58.0.4=py38h06a4308_0
   - six==1.16.0=pyhd3eb1b0_0
   - sqlite==3.36.0=hc218d9a_0
+  - SQLAlchemy
   - threadpoolctl==2.2.0=pyh0d69192_0
   - tk==8.6.11=h1ccaba5_0
   - torchaudio==0.10.0=py38_cu113
