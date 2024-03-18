@@ -261,7 +261,7 @@ class BertForNSP:
             configuration.hidden_dropout_prob = 0.5
             configuration.attention_probs_dropout_prob = 0.5
             self.model = BertForNextSentencePrediction.from_pretrained(pretrained_model_name_or_path=model_path,
-                                                   config=configuration)
+                                                                       config=configuration)
 
         else:
             self.model = BertForNextSentencePrediction.from_pretrained(model_path)
@@ -309,7 +309,7 @@ class BertForNSP:
         _, probs = self.predict(data, output_probs=True)
         return probs
 
-    #https://stackoverflow.com/a/71827094
+    # https://stackoverflow.com/a/71827094
     def predict_prob_dropout(self, data, n_drop=10):
         probs = torch.zeros([len(data), 2]).to(self.device)
         for i in range(n_drop):
@@ -332,6 +332,8 @@ class BertForNSP:
                                           gradient_accumulation_steps=options["train_batch_size"],
                                           gradient_checkpointing=True,
                                           fp16=torch.cuda.is_available(),
+                                          dataloader_num_workers=1,
+                                          dataloader_prefetch_factor=2,
                                           **default_args)
 
         trainer = Trainer(model=self.model, args=training_args, train_dataset=train_dataloader.dataset)

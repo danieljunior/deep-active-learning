@@ -1,15 +1,16 @@
 from base import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import Text
+from sqlalchemy.types import Text, String, Integer
 from pgvector.sqlalchemy import Vector
 from typing import List
 
 class Document(Base):
     __tablename__ = "documents"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    text: Mapped[str] = mapped_column(Text)
-    embedding = mapped_column(Vector(3))
+    id = mapped_column(Integer, primary_key=True)
+    text = mapped_column(Text, nullable=False)
+    embedding = mapped_column(Vector(3), nullable=False)
+    hash = mapped_column(String, nullable=False)
 
     # pairs: Mapped[List["Pair"]] = relationship(back_populates="document")
 

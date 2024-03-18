@@ -7,15 +7,17 @@ class Run(Base):
     __tablename__ = "runs"
 
     id = mapped_column(Integer, primary_key=True)
-    strategy_id = mapped_column(ForeignKey("strategies.id"))
+    strategy_id = mapped_column(ForeignKey("strategies.id"), nullable=False)
+    query_size = mapped_column(Integer, nullable=False)
+    pool_size = mapped_column(Integer, nullable=False)
+    n_rounds = mapped_column(Integer, nullable=False)
+    seed = mapped_column(Integer, nullable=False)
+    model_id = mapped_column(ForeignKey("models.id"), nullable=False)
+    metric = mapped_column(String, nullable=False)
+
     strategy = relationship("Strategy", back_populates="runs")
-    query_size = mapped_column(Integer)
-    pool_size = mapped_column(Integer)
-    n_rounds = mapped_column(Integer)
-    seed = mapped_column(Integer)
-    model_id = mapped_column(ForeignKey("models.id"))
     model = relationship("Model", back_populates="runs")
-    metric = mapped_column(String)
     rounds: Mapped[List["Round"]] = relationship(back_populates="run")
+
     def __repr__(self) -> str:
         return f"Run(id={self.id!r}, strategy={self.strategy!r}"

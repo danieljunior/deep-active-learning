@@ -209,5 +209,6 @@ dependencies:
   - zlib=1.2.13=hd590300_5
   - zstd=1.5.5=hfc55251_0
   - pip:
+      - accelerate==0.28.0
       - pgvector==0.2.5
 prefix: /opt/miniconda3/envs/deepal
